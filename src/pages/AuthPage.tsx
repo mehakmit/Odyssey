@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { GoogleAuthProvider, OAuthProvider, signInWithCredential, signInWithRedirect, getRedirectResult } from 'firebase/auth'
+import { useState } from 'react'
+import { GoogleAuthProvider, OAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { Navigate, useLocation } from 'react-router-dom'
@@ -13,17 +13,6 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false)
 
   const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/'
-
-  // Handle redirect result (Google sign-in redirect flow)
-  useEffect(() => {
-    getRedirectResult(auth).catch(err => {
-      const code = err?.code ?? ''
-      const msg = err?.message ?? ''
-      if (code !== 'auth/user-cancelled' && code !== 'auth/cancelled-popup-request') {
-        setError(msg || code || 'Sign in failed')
-      }
-    })
-  }, [])
 
   // While Firebase is restoring auth state, show nothing to avoid a flash
   if (authLoading) {
@@ -48,13 +37,14 @@ export default function AuthPage() {
             iOSClientId: '947837806868-m7rrbj27g3atsk0bqadtcrdkkq6b18q3.apps.googleusercontent.com',
           },
         })
+        // Clear any cached Google session so the account picker always shows
+        try { await SocialLogin.logout({ provider: 'google' }) } catch {}
         const result = await SocialLogin.login({ provider: 'google', options: {} })
         const { idToken, accessToken } = result.result as any
         const credential = GoogleAuthProvider.credential(idToken ?? null, accessToken?.token)
         await signInWithCredential(auth, credential)
       } else {
-        // Redirect flow — navigates to Google and back; no popup to block
-        await signInWithRedirect(auth, googleProvider)
+        await signInWithPopup(auth, googleProvider)
       }
     } catch (err: any) {
       const code = err?.code ?? ''

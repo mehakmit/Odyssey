@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase'
 import { tryParseDate } from '@/lib/parseDate'
 import {
   Upload, Plane, Train, Hotel, Bus, Ticket, Car, Trash2, Loader2,
-  User, X, ExternalLink, FileText,
+  User, X, FileText, ExternalLink,
 } from 'lucide-react'
 import { loadFile, loadFileRemote } from '@/lib/fileStore'
 import type { Ticket as TicketType, TicketType as TType, Trip } from '@/types'
@@ -23,7 +23,8 @@ export default function TicketsTab({ tripId }: { tripId: string }) {
   const [uploadCount, setUploadCount] = useState(0)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [trip, setTrip] = useState<Trip | null>(null)
-  const [selectedTicket, setSelectedTicket] = useState<TicketType | null>(null)
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
+  const selectedTicket = selectedTicketId ? tickets.find(t => t.id === selectedTicketId) ?? null : null
 
   useState(() => {
     const unsub = onSnapshot(doc(db, 'trips', tripId), snap => {
@@ -121,7 +122,7 @@ export default function TicketsTab({ tripId }: { tripId: string }) {
               key={ticket.id}
               ticket={ticket}
               members={members as any[]}
-              onOpen={() => setSelectedTicket(ticket)}
+              onOpen={() => setSelectedTicketId(ticket.id)}
               onDelete={() => deleteTicket(ticket.id)}
               onAssign={uid => assignTicket(ticket.id, uid)}
             />
@@ -139,8 +140,8 @@ export default function TicketsTab({ tripId }: { tripId: string }) {
         <TicketModal
           ticket={selectedTicket}
           members={members as any[]}
-          onClose={() => setSelectedTicket(null)}
-          onDelete={() => { deleteTicket(selectedTicket.id); setSelectedTicket(null) }}
+          onClose={() => setSelectedTicketId(null)}
+          onDelete={() => { deleteTicket(selectedTicket.id); setSelectedTicketId(null) }}
           onAssign={uid => assignTicket(selectedTicket.id, uid)}
         />
       )}
@@ -318,6 +319,7 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign }: ModalProp
   const Icon = TYPE_ICONS[data.type] ?? Ticket
   const isImage = ticket.fileType?.startsWith('image/')
   const [docUrl, setDocUrl] = useState<string | null>(ticket.fileUrl ?? null)
+  const [showPdf, setShowPdf] = useState(false)
 
   // Load file: IndexedDB (same device) → Firestore base64 (any device) → Firebase Storage URL
   useEffect(() => {
@@ -342,6 +344,38 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign }: ModalProp
     })()
     return () => { if (blobUrl) URL.revokeObjectURL(blobUrl) }
   }, [ticket.localFileKey, ticket.fileUrl])
+
+  if (showPdf && docUrl && !ticket.fileUrl) {
+    // Fallback inline viewer — only when no Firebase Storage URL exists
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-slate-950"
+        style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="flex items-center gap-3 px-4 py-3 bg-slate-900 border-b border-slate-800 shrink-0">
+          <button onClick={() => setShowPdf(false)} className="text-slate-400 hover:text-white p-1 -ml-1">
+            <X size={20} />
+          </button>
+          <p className="text-white text-sm font-medium flex-1 truncate">{ticket.fileName}</p>
+        </div>
+        <iframe
+          src={docUrl}
+          style={{ flex: 1, border: 'none', width: '100%' }}
+          title={ticket.fileName}
+          onLoad={e => {
+            try {
+              const doc = (e.target as HTMLIFrameElement).contentDocument
+              if (!doc) return
+              doc.querySelectorAll('meta[name="viewport"]').forEach(m => m.remove())
+              const meta = doc.createElement('meta')
+              meta.setAttribute('name', 'viewport')
+              meta.setAttribute('content', 'width=device-width, initial-scale=1')
+              doc.head?.appendChild(meta)
+            } catch {}
+          }}
+        />
+      </div>
+    )
+  }
 
   return (
     <div
@@ -414,15 +448,21 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign }: ModalProp
                 />
               ) : (
                 <button
-                  onClick={() => window.open(docUrl!, '_blank')}
+                  onClick={() => {
+                    if (ticket.fileUrl) {
+                      window.open(ticket.fileUrl, '_system')
+                    } else {
+                      setShowPdf(true)
+                    }
+                  }}
                   className="w-full flex items-center gap-3 bg-slate-800 hover:bg-slate-700 rounded-xl p-4 transition-colors text-left"
                 >
                   <FileText size={24} className="text-indigo-400 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white truncate">{ticket.fileName}</p>
-                    <p className="text-xs text-slate-400">Tap to open PDF</p>
+                    <p className="text-xs text-slate-400">Tap to open</p>
                   </div>
-                  <ExternalLink size={16} className="text-slate-400 shrink-0" />
+                  <ExternalLink size={16} className="text-slate-500 shrink-0" />
                 </button>
               )
             ) : (
@@ -448,6 +488,7 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign }: ModalProp
                 className="flex-1 bg-slate-800 text-slate-300 text-xs rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="">Assign to...</option>
+                <option value="all">Everyone</option>
                 {members.map(m => (
                   <option key={m.uid} value={m.uid}>{m.displayName ?? m.email}</option>
                 ))}

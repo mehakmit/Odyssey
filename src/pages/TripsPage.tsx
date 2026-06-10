@@ -192,6 +192,8 @@ export default function TripsPage() {
   const { user } = useAuth()
   const { trips, loading } = useTrips(user?.uid)
   const [showCreate, setShowCreate] = useState(false)
+  const [showJoin, setShowJoin] = useState(false)
+  const [joinCode, setJoinCode] = useState('')
   const navigate = useNavigate()
 
   const now = Date.now()
@@ -208,6 +210,9 @@ export default function TripsPage() {
           <h1 className="font-display italic text-3xl text-white">Odyssey</h1>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => setShowJoin(true)} className="text-sm text-slate-400 font-medium px-2 py-2">
+            Join
+          </button>
           <button
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-1.5 bg-indigo-600 text-white px-3 py-2 rounded-full text-sm font-semibold"
@@ -327,6 +332,39 @@ export default function TripsPage() {
       </main>
 
       {showCreate && <CreateTripModal onClose={() => setShowCreate(false)} />}
+
+      {showJoin && (
+        <div className="fixed inset-0 bg-black/60 flex items-end justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-white">Join a trip</h2>
+            <p className="text-sm text-slate-400">Enter the trip code shared by the organiser.</p>
+            <input
+              value={joinCode}
+              onChange={e => setJoinCode(e.target.value)}
+              placeholder="Paste trip code…"
+              className="w-full bg-slate-800 text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
+              style={{ fontSize: 16 }}
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setShowJoin(false); setJoinCode('') }}
+                className="flex-1 py-2.5 rounded-lg text-sm text-slate-400"
+                style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { if (joinCode.trim()) navigate(`/join/${joinCode.trim()}`) }}
+                disabled={!joinCode.trim()}
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white bg-indigo-600 disabled:opacity-50"
+              >
+                Join
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
