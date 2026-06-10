@@ -125,7 +125,7 @@ export default function TripPage() {
       </div>
 
       {showSettings && (
-        <TripSettingsModal trip={trip} onClose={() => setShowSettings(false)} />
+        <TripSettingsModal trip={trip} onClose={() => setShowSettings(false)} onDelete={() => navigate('/')} />
       )}
     </div>
   )

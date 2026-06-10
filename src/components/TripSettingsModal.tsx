@@ -1,17 +1,19 @@
 import { useState } from 'react'
-import { doc, updateDoc } from 'firebase/firestore'
+import { doc, updateDoc, deleteDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { X, Copy, Check, Plus, Trash2 } from 'lucide-react'
 import type { Trip, TripMember } from '@/types'
 
 const COMMON_CURRENCIES = ['GBP', 'USD', 'EUR', 'AUD', 'CAD', 'CHF', 'SEK', 'NOK', 'DKK', 'JPY', 'SGD', 'MYR', 'HKD', 'AED', 'INR', 'THB', 'IDR', 'CNY', 'KRW', 'NZD', 'BRL', 'MXN', 'ZAR', 'TRY', 'PHP']
 
-export default function TripSettingsModal({ trip, onClose }: { trip: Trip; onClose: () => void }) {
+export default function TripSettingsModal({ trip, onClose, onDelete }: { trip: Trip; onClose: () => void; onDelete?: () => void }) {
   const [settings, setSettings] = useState(trip.settings)
   const [copied, setCopied] = useState(false)
   const [saving, setSaving] = useState(false)
   const [tripName, setTripName] = useState(trip.name)
   const [destinations, setDestinations] = useState<string[]>(trip.destinations ?? [trip.destination])
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const inviteUrl = `https://myodyssey.live/join/${trip.inviteToken}`
 
@@ -31,6 +33,17 @@ export default function TripSettingsModal({ trip, onClose }: { trip: Trip; onClo
 
   function removeStop(i: number) {
     setDestinations(d => d.filter((_, idx) => idx !== i))
+  }
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      await deleteDoc(doc(db, 'trips', trip.id))
+      onDelete?.()
+    } catch {
+      setDeleting(false)
+      setConfirmDelete(false)
+    }
   }
 
   async function saveSettings() {
@@ -161,6 +174,39 @@ export default function TripSettingsModal({ trip, onClose }: { trip: Trip; onClo
         >
           {saving ? 'Saving...' : 'Save'}
         </button>
+
+        <div className="pt-2 border-t border-white/[0.06]">
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="w-full py-2.5 rounded-lg text-sm text-red-400"
+              style={{ background: 'rgba(239,68,68,0.08)' }}
+            >
+              Delete this trip
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-slate-300 text-center">Delete <strong className="text-white">{trip.name}</strong>? This can't be undone.</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="flex-1 py-2 rounded-lg text-sm text-slate-400"
+                  style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex-1 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
+                  style={{ background: '#dc2626' }}
+                >
+                  {deleting ? 'Deleting…' : 'Delete forever'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -29,15 +29,18 @@ export function useTrips(uid: string | undefined) {
   async function createTrip(data: {
     name: string
     destination: string
+    destinations?: string[]
     startDate: number
     endDate: number
     user: { uid: string; email: string; displayName: string | null }
+    baseCurrency?: string
   }) {
     const id = nanoid()
     const inviteToken = nanoid(16)
     const trip: Omit<Trip, 'id'> = {
       name: data.name,
       destination: data.destination,
+      ...(data.destinations && data.destinations.length > 1 ? { destinations: data.destinations } : {}),
       startDate: data.startDate,
       endDate: data.endDate,
       members: [data.user.uid],
@@ -51,7 +54,7 @@ export function useTrips(uid: string | undefined) {
         },
       },
       ownerId: data.user.uid,
-      settings: { showCar: false, showExpenses: false, baseCurrency: 'GBP' },
+      settings: { showCar: false, showExpenses: false, baseCurrency: data.baseCurrency ?? 'GBP' },
       createdAt: Date.now(),
       inviteToken,
     }

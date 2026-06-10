@@ -4,13 +4,17 @@ import { useAuth } from '@/hooks/useAuth'
 import { Plus, Trash2, Luggage } from 'lucide-react'
 import type { PackingItem } from '@/hooks/usePackingList'
 
-const CATEGORIES: { key: PackingItem['category']; label: string; emoji: string }[] = [
-  { key: 'clothes',    label: 'Clothes',     emoji: '👕' },
-  { key: 'toiletries', label: 'Toiletries',  emoji: '🧴' },
-  { key: 'documents',  label: 'Documents',   emoji: '📄' },
-  { key: 'electronics',label: 'Electronics', emoji: '🔌' },
-  { key: 'other',      label: 'Other',       emoji: '📦' },
+const CATEGORIES: { key: PackingItem['category']; emoji: string }[] = [
+  { key: 'clothes',     emoji: '👕' },
+  { key: 'toiletries',  emoji: '🧴' },
+  { key: 'documents',   emoji: '📄' },
+  { key: 'electronics', emoji: '🔌' },
+  { key: 'other',       emoji: '📦' },
 ]
+
+function catEmoji(cat: PackingItem['category']) {
+  return CATEGORIES.find(c => c.key === cat)?.emoji ?? '📦'
+}
 
 export default function PackingTab({ tripId }: { tripId: string }) {
   const { items, loading, addItem, toggleItem, deleteItem } = usePackingList(tripId)
@@ -29,6 +33,12 @@ export default function PackingTab({ tripId }: { tripId: string }) {
 
   const packed = items.filter(i => i.packed).length
   const total = items.length
+
+  // Unpacked first, packed at the bottom
+  const sortedItems = [
+    ...items.filter(i => !i.packed),
+    ...items.filter(i => i.packed),
+  ]
 
   return (
     <div className="pb-6">
@@ -62,12 +72,15 @@ export default function PackingTab({ tripId }: { tripId: string }) {
               className="w-full bg-slate-800 text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500"
               autoFocus
             />
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2">
               {CATEGORIES.map(c => (
                 <button key={c.key} type="button" onClick={() => setNewCategory(c.key)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
-                  style={{ background: newCategory === c.key ? '#6366f1' : 'rgba(255,255,255,0.08)', color: '#fff' }}>
-                  {c.emoji} {c.label}
+                  className="flex-1 h-9 rounded-xl text-lg flex items-center justify-center transition-all"
+                  style={{
+                    background: newCategory === c.key ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.06)',
+                    border: newCategory === c.key ? '1px solid rgba(99,102,241,0.5)' : '1px solid transparent',
+                  }}>
+                  {c.emoji}
                 </button>
               ))}
             </div>
@@ -92,34 +105,26 @@ export default function PackingTab({ tripId }: { tripId: string }) {
         </div>
       )}
 
-      <div className="px-4 space-y-5">
-        {CATEGORIES.filter(c => items.some(i => i.category === c.key)).map(cat => (
-          <div key={cat.key}>
-            <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest mb-2 px-1">
-              {cat.emoji} {cat.label}
-            </p>
-            <div className="space-y-2">
-              {items.filter(i => i.category === cat.key).map(item => (
-                <div key={item.id} className="flex items-center gap-3 rounded-2xl px-4 py-3"
-                  style={{ background: '#0c1b30', boxShadow: '0 1px 0 rgba(255,255,255,0.06)' }}>
-                  <button
-                    onClick={() => toggleItem(item.id, !item.packed)}
-                    className="w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all"
-                    style={{
-                      borderColor: item.packed ? '#e76a55' : 'rgba(255,255,255,0.2)',
-                      background: item.packed ? '#e76a55' : 'transparent',
-                    }}>
-                    {item.packed && <span className="text-white text-xs font-bold">✓</span>}
-                  </button>
-                  <span className={`flex-1 text-sm transition-colors ${item.packed ? 'line-through text-slate-500' : 'text-white'}`}>
-                    {item.title}
-                  </span>
-                  <button onClick={() => deleteItem(item.id)} className="text-slate-700 hover:text-red-400 transition-colors p-1">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
+      <div className="px-4 space-y-2">
+        {sortedItems.map(item => (
+          <div key={item.id} className="flex items-center gap-3 rounded-2xl px-4 py-3"
+            style={{ background: '#0c1b30', boxShadow: '0 1px 0 rgba(255,255,255,0.06)' }}>
+            <button
+              onClick={() => toggleItem(item.id, !item.packed)}
+              className="w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all"
+              style={{
+                borderColor: item.packed ? '#e76a55' : 'rgba(255,255,255,0.2)',
+                background: item.packed ? '#e76a55' : 'transparent',
+              }}>
+              {item.packed && <span className="text-white text-xs font-bold">✓</span>}
+            </button>
+            <span className={`flex-1 text-sm transition-colors ${item.packed ? 'line-through text-slate-500' : 'text-white'}`}>
+              {item.title}
+            </span>
+            <span className="text-sm" style={{ opacity: 0.3 }}>{catEmoji(item.category)}</span>
+            <button onClick={() => deleteItem(item.id)} className="text-slate-700 hover:text-red-400 transition-colors p-1">
+              <Trash2 size={14} />
+            </button>
           </div>
         ))}
       </div>

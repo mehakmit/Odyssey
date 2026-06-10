@@ -1,17 +1,34 @@
-import { useState } from 'react'
-import { GoogleAuthProvider, OAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth'
+import { useState, useEffect } from 'react'
+import { GoogleAuthProvider, OAuthProvider, signInWithCredential, signInWithRedirect, getRedirectResult } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { Navigate, useLocation } from 'react-router-dom'
+import { OdysseyIcon } from '@/components/OdysseyIcon'
 const googleProvider = new GoogleAuthProvider()
 
 export default function AuthPage() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const location = useLocation()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/'
+
+  // Handle redirect result (Google sign-in redirect flow)
+  useEffect(() => {
+    getRedirectResult(auth).catch(err => {
+      const code = err?.code ?? ''
+      const msg = err?.message ?? ''
+      if (code !== 'auth/user-cancelled' && code !== 'auth/cancelled-popup-request') {
+        setError(msg || code || 'Sign in failed')
+      }
+    })
+  }, [])
+
+  // While Firebase is restoring auth state, show nothing to avoid a flash
+  if (authLoading) {
+    return <div style={{ background: '#020817', minHeight: '100dvh' }} />
+  }
 
   if (user) return <Navigate to={from} replace />
 
@@ -36,7 +53,8 @@ export default function AuthPage() {
         const credential = GoogleAuthProvider.credential(idToken ?? null, accessToken?.token)
         await signInWithCredential(auth, credential)
       } else {
-        await signInWithPopup(auth, googleProvider)
+        // Redirect flow — navigates to Google and back; no popup to block
+        await signInWithRedirect(auth, googleProvider)
       }
     } catch (err: any) {
       const code = err?.code ?? ''
@@ -79,7 +97,8 @@ export default function AuthPage() {
     <div
       className="bg-slate-950"
       style={{
-        minHeight: '100dvh',
+        height: '100dvh',
+        overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -90,8 +109,9 @@ export default function AuthPage() {
       }}
     >
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="font-display italic text-4xl text-white">Odyssey</h1>
+        <div className="flex flex-col items-center mb-8">
+          <OdysseyIcon size={80} variant="icon" />
+          <h1 className="font-display italic text-4xl text-white mt-4">Odyssey</h1>
           <p className="text-slate-400 mt-1">Plan trips with your people</p>
         </div>
 
@@ -100,9 +120,9 @@ export default function AuthPage() {
             <button
               onClick={signInWithApple}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 bg-black disabled:opacity-50 text-white rounded-lg py-2.5 text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-3 bg-black disabled:opacity-50 text-white rounded-lg py-3 text-sm font-medium transition-colors"
             >
-              <svg width="16" height="19" viewBox="0 0 16 19" fill="white">
+              <svg width="16" height="20" viewBox="0 0 16 20" fill="white" style={{ overflow: 'visible' }}>
                 <path d="M13.27 9.93c-.02-2.04 1.67-3.02 1.74-3.07C13.97 4.8 12.3 4.6 11.7 4.58c-1.38-.14-2.7.82-3.4.82-.7 0-1.78-.8-2.93-.78C3.83 4.65 2.3 5.67 1.47 7.2-.23 10.3.84 14.9 2.5 17.38c.82 1.2 1.8 2.54 3.08 2.49 1.24-.05 1.71-.8 3.21-.8 1.5 0 1.93.8 3.24.78 1.34-.02 2.18-1.22 2.99-2.43.95-1.39 1.34-2.74 1.36-2.81-.03-.01-2.6-1-2.61-3.68zM10.72 2.94C11.38 2.14 11.82 1.02 11.7 0c-.97.04-2.14.65-2.83 1.44C8.22 2.2 7.68 3.34 7.82 4.34c1.08.08 2.19-.55 2.9-1.4z"/>
               </svg>
               Sign in with Apple
@@ -112,7 +132,7 @@ export default function AuthPage() {
           <button
             onClick={signInWithGoogle}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-100 disabled:opacity-50 text-gray-800 rounded-lg py-2.5 text-sm font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-100 disabled:opacity-50 text-gray-800 rounded-lg py-3 text-sm font-medium transition-colors"
           >
             <svg width="18" height="18" viewBox="0 0 18 18">
               <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>

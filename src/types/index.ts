@@ -23,6 +23,7 @@ export interface Trip {
   id: string
   name: string
   destination: string
+  destinations?: string[] // multiple stops e.g. ['Singapore', 'Bali', 'Bangkok']
   startDate: number // unix ms
   endDate: number
   members: string[] // uids
@@ -85,6 +86,26 @@ export interface Ticket {
   parsed: ParsedTicketData
   manualOverrides?: Partial<ParsedTicketData>
   assignedMemberUid?: string
+}
+
+export interface TripEvent {
+  id: string
+  tripId: string
+  date: string // 'YYYY-MM-DD'
+  time?: string
+  title: string
+  type: string
+  createdAt: number
+}
+
+export interface TripNote {
+  id: string
+  tripId: string
+  title: string
+  notes?: string
+  category: string
+  done: boolean
+  createdAt: number
 }
 
 export interface ItineraryDay {

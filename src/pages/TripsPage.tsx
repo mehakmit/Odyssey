@@ -1,13 +1,192 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useTrips } from '@/hooks/useTrips'
 import { useAuth } from '@/hooks/useAuth'
 import { format, differenceInDays } from 'date-fns'
-import { Plus, LogOut } from 'lucide-react'
+import { Plus, LogOut, Plane, Map, BookOpen, Luggage } from 'lucide-react'
 import CreateTripModal from '@/components/CreateTripModal'
-import type { Trip } from '@/types'
+import { OdysseyIcon } from '@/components/OdysseyIcon'
+import type { Trip, TripMember } from '@/types'
+
+const GRADIENT_FALLBACKS = [
+  'linear-gradient(160deg, #0f4c81 0%, #1a6db5 100%)',
+  'linear-gradient(160deg, #4a1942 0%, #7b2d8b 100%)',
+  'linear-gradient(160deg, #7a2e0e 0%, #b5451b 100%)',
+  'linear-gradient(160deg, #14532d 0%, #1a5c3a 100%)',
+  'linear-gradient(160deg, #1e3a5c 0%, #1a3a5c 100%)',
+  'linear-gradient(160deg, #3b0764 0%, #5c1a3a 100%)',
+  'linear-gradient(160deg, #292524 0%, #44403c 100%)',
+  'linear-gradient(160deg, #0c4a6e 0%, #1a4a5c 100%)',
+]
+
+function getDestinationGradient(destination: string): string {
+  const hash = destination.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
+  return GRADIENT_FALLBACKS[hash % GRADIENT_FALLBACKS.length]!
+}
+
+// Wikipedia article names for major destinations
+const WIKI_ARTICLES: Record<string, string> = {
+  'singapore': 'Marina_Bay_Sands',
+  'paris': 'Eiffel_Tower',
+  'london': 'Tower_Bridge',
+  'new york': 'New_York_City',
+  'new york city': 'Manhattan',
+  'nyc': 'Manhattan',
+  'tokyo': 'Tokyo',
+  'kyoto': 'Fushimi_Inari-taisha',
+  'osaka': 'Osaka',
+  'dubai': 'Burj_Khalifa',
+  'rome': 'Colosseum',
+  'barcelona': 'Sagrada_Família',
+  'sydney': 'Sydney_Opera_House',
+  'amsterdam': 'Amsterdam',
+  'prague': 'Prague',
+  'venice': 'Grand_Canal,_Venice',
+  'santorini': 'Santorini',
+  'athens': 'Parthenon',
+  'istanbul': 'Hagia_Sophia',
+  'bali': 'Bali',
+  'bangkok': 'Wat_Arun',
+  'hong kong': 'Hong_Kong',
+  'shanghai': 'The_Bund',
+  'beijing': 'Great_Wall_of_China',
+  'cairo': 'Egyptian_pyramids',
+  'marrakech': 'Marrakesh',
+  'cape town': 'Table_Mountain',
+  'rio de janeiro': 'Christ_the_Redeemer',
+  'rio': 'Christ_the_Redeemer',
+  'mexico city': 'Mexico_City',
+  'maldives': 'Maldives',
+  'hawaii': 'Hawaii',
+  'las vegas': 'Las_Vegas_Strip',
+  'los angeles': 'Hollywood_Sign',
+  'san francisco': 'Golden_Gate_Bridge',
+  'chicago': 'Cloud_Gate',
+  'toronto': 'Toronto',
+  'montreal': 'Montreal',
+  'lisbon': 'Lisbon',
+  'porto': 'Porto',
+  'madrid': 'Royal_Palace_of_Madrid',
+  'milan': 'Milan_Cathedral',
+  'florence': 'Florence',
+  'amalfi': 'Amalfi_Coast',
+  'mykonos': 'Mykonos',
+  'berlin': 'Brandenburg_Gate',
+  'vienna': 'Schönbrunn_Palace',
+  'budapest': 'Hungarian_Parliament_Building',
+  'stockholm': 'Stockholm',
+  'copenhagen': 'Nyhavn',
+  'reykjavik': 'Reykjavík',
+  'iceland': 'Iceland',
+  'edinburgh': 'Edinburgh_Castle',
+  'dublin': 'Dublin',
+  'petra': 'Petra,_Jordan',
+  'jordan': 'Petra,_Jordan',
+  'turkey': 'Cappadocia',
+  'cappadocia': 'Cappadocia',
+  'agra': 'Taj_Mahal',
+  'india': 'Taj_Mahal',
+  'mumbai': 'Mumbai',
+  'jaipur': 'Amber_Palace',
+  'vietnam': 'Hạ_Long_Bay',
+  'cambodia': 'Angkor_Wat',
+  'siem reap': 'Angkor_Wat',
+  'new zealand': 'Milford_Sound',
+  'queenstown': 'Queenstown,_New_Zealand',
+  'canada': 'Canada',
+}
+
+function useWikipediaImage(destination: string) {
+  const [imgUrl, setImgUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    const lower = destination.toLowerCase().trim()
+    const mapped = WIKI_ARTICLES[lower]
+      ?? Object.entries(WIKI_ARTICLES).find(([k]) => lower.includes(k))?.[1]
+    const cityName = destination.split(',')[0].trim()
+    // Try mapped article first, then city name as fallback
+    const toTry = mapped && mapped !== cityName ? [mapped, cityName] : [cityName]
+
+    let cancelled = false
+
+    ;(async () => {
+      for (const article of toTry) {
+        try {
+          const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(article)}`)
+          const data = await r.json()
+          if (cancelled) return
+          const src = data.originalimage?.source ?? data.thumbnail?.source ?? null
+          if (src) { setImgUrl(src); return }
+        } catch {}
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [destination])
+
+  return imgUrl
+}
+
+function wmoEmoji(code: number): string {
+  if (code === 0) return '☀️'
+  if (code <= 3) return '🌤️'
+  if (code <= 48) return '🌫️'
+  if (code <= 55) return '🌦️'
+  if (code <= 67) return '🌧️'
+  if (code <= 77) return '❄️'
+  if (code <= 82) return '🌧️'
+  if (code <= 86) return '🌨️'
+  return '⛈️'
+}
+
+function useWeather(destination: string) {
+  const [weather, setWeather] = useState<{ temp: number; emoji: string } | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    const city = destination.split(',')[0].trim()
+    fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`)
+      .then(r => r.json())
+      .then(geo => {
+        if (cancelled || !geo.results?.[0]) return null
+        const { latitude, longitude } = geo.results[0]
+        return fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code`)
+      })
+      .then(r => r?.json())
+      .then(data => {
+        if (cancelled || !data?.current) return
+        setWeather({ temp: Math.round(data.current.temperature_2m), emoji: wmoEmoji(data.current.weather_code) })
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [destination])
+  return weather
+}
+
+function MemberAvatars({ members }: { members: Record<string, TripMember> }) {
+  const entries = Object.values(members).slice(0, 4)
+  if (entries.length === 0) return null
+  return (
+    <div className="flex items-center gap-1">
+      {entries.map((m, i) => {
+        const initials = m.displayName
+          ? m.displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+          : (m.email?.[0] ?? '?').toUpperCase()
+        const colors = ['#e76a55', '#6366f1', '#0891b2', '#16a34a']
+        return (
+          <div key={i} className="w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold shrink-0"
+            style={{ fontSize: 9, background: colors[i % colors.length]!, border: '1.5px solid rgba(7,14,28,0.8)', marginLeft: i > 0 ? -4 : 0 }}>
+            {initials}
+          </div>
+        )
+      })}
+      {Object.keys(members).length > 4 && (
+        <span className="text-[10px] text-white/50 ml-1 font-mono">+{Object.keys(members).length - 4}</span>
+      )}
+    </div>
+  )
+}
 
 export default function TripsPage() {
   const { user } = useAuth()
@@ -24,7 +203,10 @@ export default function TripsPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="flex items-center justify-between px-5 pb-4 pt-safe">
-        <h1 className="font-display italic text-3xl text-white">Odyssey</h1>
+        <div className="flex items-center gap-2.5">
+          <OdysseyIcon size={28} variant="mark" />
+          <h1 className="font-display italic text-3xl text-white">Odyssey</h1>
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowCreate(true)}
@@ -43,8 +225,58 @@ export default function TripsPage() {
 
         {/* Hero trip card */}
         {hero && (
-          <div className="px-4 mb-6">
+          <div className="px-4 mb-4">
             <HeroCard trip={hero} onClick={() => navigate(`/trip/${hero.id}`)} />
+          </div>
+        )}
+
+        {/* Quick actions for hero trip */}
+        {hero && (
+          <div className="px-4 mb-3 grid grid-cols-4 gap-2">
+            {[
+              { icon: Plane,    label: 'Tickets',  state: { tab: 'tickets' } },
+              { icon: Map,      label: 'Plan',     state: { tab: 'itinerary' } },
+              { icon: BookOpen, label: 'Wishlist', state: { tab: 'itinerary', view: 'wishlist' } },
+              { icon: Luggage,  label: 'Pack',     state: { tab: 'itinerary', view: 'pack' } },
+            ].map(({ icon: Icon, label, state: navState }) => (
+              <button
+                key={label}
+                onClick={() => navigate(`/trip/${hero.id}`, { state: navState })}
+                className="flex flex-col items-center gap-1.5 rounded-2xl py-3 transition-colors"
+                style={{ background: '#0c1b30', boxShadow: '0 1px 0 rgba(255,255,255,0.06)' }}
+              >
+                <Icon size={18} className="text-indigo-400" />
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wide">{label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Trip stats */}
+        {hero && (
+          <div className="px-4 mb-5 grid grid-cols-3 gap-2">
+            {[
+              { label: 'Duration', value: `${Math.max(1, differenceInDays(hero.endDate, hero.startDate))} days` },
+              { label: 'Travellers', value: `${hero.members.length} ${hero.members.length === 1 ? 'person' : 'people'}` },
+              { label: 'Currency', value: hero.settings.baseCurrency ?? 'GBP' },
+            ].map(s => (
+              <div key={s.label} className="rounded-2xl px-3 py-2.5 text-center" style={{ background: '#0c1b30', boxShadow: '0 1px 0 rgba(255,255,255,0.06)' }}>
+                <p className="font-mono text-[9px] text-slate-500 uppercase tracking-widest">{s.label}</p>
+                <p className="text-white text-sm font-semibold mt-0.5">{s.value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Route cards — shown when trip has multiple destinations */}
+        {hero && (hero.destinations ?? []).length > 1 && (
+          <div className="mb-5">
+            <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest mb-2 px-5">Your route</p>
+            <div className="flex gap-3 px-4 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+              {(hero.destinations!).map((dest, i) => (
+                <DestinationStopCard key={i} name={dest} index={i} total={hero.destinations!.length} />
+              ))}
+            </div>
           </div>
         )}
 
@@ -73,11 +305,23 @@ export default function TripsPage() {
         )}
 
         {!loading && trips.length === 0 && (
-          <div className="text-center py-20 px-5">
-            <p className="font-display italic text-4xl text-slate-700">No trips yet</p>
-            <button onClick={() => setShowCreate(true)} className="mt-4 text-indigo-400 text-sm font-medium">
-              Plan your first adventure →
-            </button>
+          <div className="px-4 py-4 space-y-5">
+            <EmptyHero onCreateTrip={() => setShowCreate(true)} />
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { emoji: '✈️', title: 'Flights & trains', desc: 'Upload boarding passes — we parse them automatically' },
+                { emoji: '🏨', title: 'Hotel bookings', desc: 'Keep all your stay info in one place' },
+                { emoji: '📅', title: 'Day-by-day plan', desc: 'Visual timeline for every day of your trip' },
+                { emoji: '👥', title: 'Travel together', desc: 'Invite friends and plan as a group' },
+              ].map(f => (
+                <div key={f.title} className="rounded-2xl px-4 py-4 flex flex-col gap-2"
+                  style={{ background: '#0c1b30', boxShadow: '0 1px 0 rgba(255,255,255,0.05)' }}>
+                  <span className="text-2xl">{f.emoji}</span>
+                  <p className="text-white text-sm font-semibold leading-tight">{f.title}</p>
+                  <p className="text-slate-500 text-xs leading-snug">{f.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </main>
@@ -87,64 +331,111 @@ export default function TripsPage() {
   )
 }
 
+function EmptyHero({ onCreateTrip }: { onCreateTrip: () => void }) {
+  const imgUrl = useWikipediaImage('Eiffel Tower')
+  return (
+    <div className="rounded-[28px] overflow-hidden relative text-white px-6 pt-44 pb-8"
+      style={{ background: '#0c1b30', boxShadow: '0 24px 60px -28px rgba(0,0,0,0.7)' }}>
+      {imgUrl && (
+        <img src={imgUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      )}
+      <div className="absolute inset-0"
+        style={{ background: 'linear-gradient(to bottom, rgba(7,14,28,0.1) 0%, rgba(7,14,28,0.85) 60%, #070e1c 100%)' }} />
+      <div className="relative text-center">
+        <p className="font-display italic text-5xl leading-tight text-white mb-3">Your next<br />adventure<br />awaits</p>
+        <p className="text-white/60 text-sm mb-6">Plan trips, split costs, and keep everyone on the same page.</p>
+        <button onClick={onCreateTrip} className="px-6 py-3 rounded-full text-sm font-semibold text-white" style={{ background: '#e76a55' }}>
+          Plan your first trip
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function DestinationStopCard({ name, index, total }: { name: string; index: number; total: number }) {
+  const imgUrl = useWikipediaImage(name)
+  const short = name.split(',')[0].trim()
+  return (
+    <div className="shrink-0 flex items-center gap-2">
+      <div className="w-28 rounded-2xl overflow-hidden relative text-left" style={{ background: '#0c1b30' }}>
+        <div className="h-20 relative" style={{ background: 'linear-gradient(160deg, #1e3a5c 0%, #152d48 100%)' }}>
+          {imgUrl && <img src={imgUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 30%, rgba(7,14,28,0.7) 100%)' }} />
+          <div className="absolute bottom-1.5 left-2.5">
+            <span className="font-mono text-[8px] text-white/40 uppercase tracking-wider">Stop {index + 1}</span>
+          </div>
+        </div>
+        <div className="px-2.5 py-2">
+          <p className="text-white text-xs font-semibold leading-tight truncate">{short}</p>
+        </div>
+      </div>
+      {index < total - 1 && (
+        <span className="text-slate-600 text-sm font-mono shrink-0">→</span>
+      )}
+    </div>
+  )
+}
+
 function HeroCard({ trip, onClick }: { trip: Trip; onClick: () => void }) {
   const daysUntil = differenceInDays(trip.startDate, Date.now())
   const isUpcoming = trip.startDate > Date.now()
+  const isActive = trip.startDate <= Date.now() && trip.endDate >= Date.now()
+  const destinations = trip.destinations ?? [trip.destination]
+  const imgUrl = useWikipediaImage(destinations[0])
+  const weather = useWeather(destinations[0])
+  const routeLabel = destinations.length > 1
+    ? destinations.map(d => d.split(',')[0].trim()).join(' → ')
+    : trip.destination
 
   return (
     <button
       onClick={onClick}
       className="w-full text-left rounded-[28px] overflow-hidden relative text-white"
-      style={{
-        background: '#0c1b30',
-        boxShadow: '0 24px 60px -28px rgba(0,0,0,0.7)',
-      }}
+      style={{ boxShadow: '0 24px 60px -28px rgba(0,0,0,0.7)', minHeight: 280 }}
     >
-      {/* Diagonal stripe pattern */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: 'repeating-linear-gradient(135deg, #152d48 0 16px, #0c1b30 16px 32px)',
-          opacity: 0.9,
-        }}
-      />
-      {/* Gradient overlay */}
-      <div
-        className="absolute inset-0"
-        style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0) 20%, #0c1b30 100%)' }}
-      />
+      <div className="absolute inset-0" style={{ background: getDestinationGradient(trip.destination) }} />
+      {imgUrl && (
+        <img src={imgUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      )}
+      <div className="absolute inset-0"
+        style={{ background: 'linear-gradient(to bottom, rgba(7,14,28,0.05) 0%, rgba(7,14,28,0.7) 55%, #070e1c 100%)' }} />
 
-      <div className="relative p-6 pt-28">
-        <div className="flex items-center gap-2 mb-3">
-          <span
-            className="text-xs font-semibold px-3 py-1.5 rounded-full"
-            style={{ background: '#f3e9d5', color: '#0A1A2E' }}
-          >
-            {isUpcoming && daysUntil >= 0 ? '● Active trip' : 'Upcoming'}
+      {weather && (
+        <div className="absolute top-4 right-4 flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-semibold"
+          style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}>
+          <span>{weather.emoji}</span>
+          <span className="text-white">{weather.temp}°</span>
+        </div>
+      )}
+
+      <div className="relative p-6 pt-32 flex flex-col gap-3">
+        {/* Status + members row */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-full"
+            style={{ background: '#f3e9d5', color: '#0A1A2E' }}>
+            {isActive ? '● Now travelling' : isUpcoming ? '● Upcoming' : 'Recent'}
           </span>
+          <MemberAvatars members={trip.memberDetails ?? {}} />
         </div>
 
-        <h2 className="font-display italic leading-[0.95] tracking-tight"
-            style={{ fontSize: 52, letterSpacing: -1 }}>
-          {trip.name}
-        </h2>
-        <p className="text-white/60 font-display italic" style={{ fontSize: 32 }}>
-          {trip.destination}
-        </p>
+        <div>
+          <h2 className="font-display italic leading-[0.95] tracking-tight"
+            style={{ fontSize: 48, letterSpacing: -1 }}>
+            {trip.name}
+          </h2>
+          <p className="text-white/55 font-display italic leading-tight" style={{ fontSize: destinations.length > 1 ? 20 : 28 }}>
+            {routeLabel}
+          </p>
+        </div>
 
-        <div className="flex items-end justify-between mt-5">
-          <div>
-            <p className="font-mono text-[11px] text-white/60 uppercase tracking-wide">
-              {format(trip.startDate, 'MMM d')} — {format(trip.endDate, 'MMM d, yyyy')}
-            </p>
-          </div>
+        <div className="flex items-end justify-between">
+          <p className="font-mono text-[11px] text-white/55 uppercase tracking-wide">
+            {format(trip.startDate, 'MMM d')} — {format(trip.endDate, 'MMM d, yyyy')}
+          </p>
           {isUpcoming && daysUntil >= 0 && (
-            <div
-              className="w-16 h-16 rounded-full border border-white/25 flex flex-col items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.05)' }}
-            >
-              <span className="font-display italic text-3xl leading-none">{daysUntil}</span>
-              <span className="font-mono text-[9px] text-white/60 uppercase tracking-wide mt-0.5">to go</span>
+            <div className="flex items-baseline gap-1">
+              <span className="font-display italic text-4xl leading-none text-white">{daysUntil}</span>
+              <span className="font-mono text-[10px] text-white/50 uppercase tracking-wide">days</span>
             </div>
           )}
         </div>
@@ -154,30 +445,29 @@ function HeroCard({ trip, onClick }: { trip: Trip; onClick: () => void }) {
 }
 
 function SmallTripCard({ trip, onClick }: { trip: Trip; onClick: () => void }) {
+  const imgUrl = useWikipediaImage(trip.destination)
   return (
-    <button
-      onClick={onClick}
-      className="w-full text-left bg-slate-900 rounded-2xl px-4 py-3.5 flex items-center gap-3"
-    >
-      <div className="flex-1 min-w-0">
+    <button onClick={onClick} className="w-full text-left rounded-2xl overflow-hidden flex items-center gap-0"
+      style={{ background: '#0c1b30', boxShadow: '0 1px 0 rgba(255,255,255,0.06)' }}>
+      <div className="w-16 h-16 shrink-0 relative" style={{ background: getDestinationGradient(trip.destination) }}>
+        {imgUrl && <img src={imgUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+      </div>
+      <div className="flex-1 min-w-0 px-4 py-3">
         <p className="font-semibold text-white truncate">{trip.name}</p>
         <p className="text-slate-400 text-xs mt-0.5">{trip.destination} · {format(trip.startDate, 'MMM d')} – {format(trip.endDate, 'MMM d')}</p>
       </div>
-      <span className="text-slate-600 text-xs font-mono shrink-0">›</span>
+      <span className="text-slate-600 text-sm font-mono pr-4">›</span>
     </button>
   )
 }
 
 function PastTripCard({ trip, onClick }: { trip: Trip; onClick: () => void }) {
+  const imgUrl = useWikipediaImage(trip.destination)
   return (
-    <button
-      onClick={onClick}
-      className="shrink-0 w-36 rounded-[20px] overflow-hidden bg-slate-900 text-left"
-    >
-      <div
-        className="h-24"
-        style={{ background: 'repeating-linear-gradient(135deg, #152d48 0 12px, #0c1b30 12px 24px)' }}
-      />
+    <button onClick={onClick} className="shrink-0 w-36 rounded-[20px] overflow-hidden bg-slate-900 text-left">
+      <div className="h-24 relative" style={{ background: getDestinationGradient(trip.destination) }}>
+        {imgUrl && <img src={imgUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+      </div>
       <div className="px-3 py-2.5">
         <p className="font-display italic text-lg leading-tight text-white">{trip.name}</p>
         <p className="font-mono text-[10px] text-slate-500 uppercase tracking-wide mt-1">

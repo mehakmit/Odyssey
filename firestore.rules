@@ -41,7 +41,21 @@ service cloud.firestore {
       allow read, write: if isTripMember(tripId);
     }
 
-    // Ticket file blobs (base64) for cross-device access — keyed by random nanoid
+    match /trip-events/{eventId} {
+      allow read, write: if isTripMember(resource.data.tripId);
+      allow create: if request.auth != null && isTripMember(request.resource.data.tripId);
+    }
+
+    match /trip-notes/{noteId} {
+      allow read, write: if isTripMember(resource.data.tripId);
+      allow create: if request.auth != null && isTripMember(request.resource.data.tripId);
+    }
+
+    match /trip-packing/{itemId} {
+      allow read, write: if isTripMember(resource.data.tripId);
+      allow create: if request.auth != null && isTripMember(request.resource.data.tripId);
+    }
+
     match /ticket-files/{fileId} {
       allow read, write: if request.auth != null;
     }
