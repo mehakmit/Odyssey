@@ -168,8 +168,8 @@ export default function ItineraryTab({ trip, initialView }: { trip: Trip; initia
         ))}
       </div>
 
-      {view === 'wishlist' && <NotesTab tripId={trip.id} />}
-      {view === 'pack' && <PackingTab tripId={trip.id} />}
+      {view === 'wishlist' && <NotesTab trip={trip} />}
+      {view === 'pack' && <PackingTab trip={trip} />}
 
       {view === 'timeline' && <>
       {/* Day pills */}

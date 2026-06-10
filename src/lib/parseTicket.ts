@@ -393,9 +393,21 @@ function splitFlightSections(text: string): string[] {
   return [text]
 }
 
+function stripStatusBar(text: string): string {
+  // OCR'd screenshots include the phone status bar as the first line (e.g. "9:41  ●●● 78%").
+  // Remove it if the first line is short and contains a time-like pattern.
+  const nl = text.indexOf('\n')
+  if (nl > 0 && nl < 60) {
+    const first = text.slice(0, nl)
+    if (/\b\d{1,2}:\d{2}\b/.test(first) && first.length < 50) return text.slice(nl + 1)
+  }
+  return text
+}
+
 export function parseAllTickets(rawText: string): ParsedTicketData[] {
-  const sections = splitFlightSections(rawText)
-  return sections.map(section => parseSection(section, rawText))
+  const text = stripStatusBar(rawText)
+  const sections = splitFlightSections(text)
+  return sections.map(section => parseSection(section, text))
 }
 
 export function parseRawText(rawText: string): ParsedTicketData {
