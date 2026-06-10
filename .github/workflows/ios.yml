@@ -1,6 +1,8 @@
 name: iOS → TestFlight
 
 on:
+  push:
+    branches: [ios]
   workflow_dispatch:
 
 jobs:
