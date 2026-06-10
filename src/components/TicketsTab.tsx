@@ -7,10 +7,10 @@ import { db } from '@/lib/firebase'
 import { tryParseDate } from '@/lib/parseDate'
 import {
   Upload, Plane, Train, Hotel, Bus, Ticket, Car, Trash2, Loader2,
-  User, X, FileText, ExternalLink,
+  User, X, FileText, ExternalLink, Camera, Pencil, Check,
 } from 'lucide-react'
 import { loadFile, loadFileRemote } from '@/lib/fileStore'
-import type { Ticket as TicketType, TicketType as TType, Trip } from '@/types'
+import type { Ticket as TicketType, TicketType as TType, Trip, ParsedTicketData } from '@/types'
 
 const TYPE_ICONS: Record<TType, typeof Plane> = {
   flight: Plane, train: Train, hotel: Hotel, car: Car, bus: Bus, ferry: Ticket, other: Ticket,
@@ -18,7 +18,7 @@ const TYPE_ICONS: Record<TType, typeof Plane> = {
 
 export default function TicketsTab({ tripId }: { tripId: string }) {
   const { user } = useAuth()
-  const { tickets, loading, uploadTicket, assignTicket, deleteTicket } = useTickets(tripId)
+  const { tickets, loading, uploadTicket, updateTicket, assignTicket, deleteTicket } = useTickets(tripId)
   const [uploading, setUploading] = useState(false)
   const [uploadCount, setUploadCount] = useState(0)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -143,6 +143,7 @@ export default function TicketsTab({ tripId }: { tripId: string }) {
           onClose={() => setSelectedTicketId(null)}
           onDelete={() => { deleteTicket(selectedTicket.id); setSelectedTicketId(null) }}
           onAssign={uid => assignTicket(selectedTicket.id, uid)}
+          onUpdate={overrides => updateTicket(selectedTicket.id, overrides)}
         />
       )}
     </div>
@@ -171,6 +172,7 @@ function TicketCard({ ticket, members, onOpen, onDelete, onAssign }: CardProps) 
   if (isBoardingPass) {
     const shortDate = data.date?.replace(/\d{4}/, '').trim().replace(/,$/, '').trim() ?? '—'
     const shortClass = data.cabinClass?.split(' ')[0] ?? '—'
+    const isScreenshot = ticket.fileType?.startsWith('image/')
     return (
       <div
         className="rounded-[22px] overflow-hidden cursor-pointer"
@@ -183,7 +185,13 @@ function TicketCard({ ticket, members, onOpen, onDelete, onAssign }: CardProps) 
             <Icon size={13} className="text-slate-400" />
             <span className="text-xs font-semibold text-slate-300">{data.airline ?? (data.type === 'train' ? 'Train' : 'Flight')}</span>
           </div>
-          <span className="font-mono text-xs text-slate-500">{data.flightNumber}</span>
+          <div className="flex items-center gap-1.5">
+            {isScreenshot
+              ? <Camera size={10} className="text-amber-600" />
+              : <FileText size={10} className="text-indigo-700" />
+            }
+            <span className="font-mono text-xs text-slate-500">{data.flightNumber}</span>
+          </div>
         </div>
 
         {/* Route: big italic IATA codes */}
@@ -232,7 +240,7 @@ function TicketCard({ ticket, members, onOpen, onDelete, onAssign }: CardProps) 
         {/* Status bar */}
         <div className="flex items-center justify-between px-4 py-2.5 rounded-b-[22px]" style={{ background: 'rgba(255,255,255,0.03)' }}>
           <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: isScreenshot ? '#f59e0b' : '#818cf8' }} />
             <span className="text-xs font-medium text-slate-300">{data.passengerName || assignLabel || 'Tap to view'}</span>
           </div>
           <div className="flex items-center gap-3">
@@ -312,15 +320,31 @@ interface ModalProps {
   onClose: () => void
   onDelete: () => void
   onAssign: (uid: string | null) => void
+  onUpdate: (overrides: Partial<ParsedTicketData>) => void
 }
 
-function TicketModal({ ticket, members, onClose, onDelete, onAssign }: ModalProps) {
+function TicketModal({ ticket, members, onClose, onDelete, onAssign, onUpdate }: ModalProps) {
   const data = { ...ticket.parsed, ...ticket.manualOverrides }
   const Icon = TYPE_ICONS[data.type] ?? Ticket
   const isImage = ticket.fileType?.startsWith('image/')
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState<Partial<ParsedTicketData>>({})
+
+  function startEdit() {
+    setDraft({ ...ticket.parsed, ...ticket.manualOverrides })
+    setEditing(true)
+  }
+  function saveEdit() {
+    onUpdate(draft)
+    setEditing(false)
+  }
+  function set(key: keyof ParsedTicketData, value: string) {
+    setDraft(d => ({ ...d, [key]: value || undefined }))
+  }
   const [docUrl, setDocUrl] = useState<string | null>(ticket.fileUrl ?? null)
   const [viewerSrc, setViewerSrc] = useState<string | null>(null)
   const [showPdf, setShowPdf] = useState(false)
+  const [showImage, setShowImage] = useState(false)
   const [docZoom, setDocZoom] = useState(0.6)
   const [panX, setPanX] = useState(0)
   const [panY, setPanY] = useState(0)
@@ -427,7 +451,41 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign }: ModalProp
       el.removeEventListener('touchmove', onMove)
       el.removeEventListener('touchend', onEnd)
     }
-  }, [showPdf])
+  }, [showPdf, showImage])
+
+  if (showImage && docUrl && isImage) {
+    return (
+      <div
+        className="fixed inset-0 z-50 bg-black"
+        style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center px-4 py-3">
+          <button onClick={() => setShowImage(false)} className="text-white/80 hover:text-white p-1 -ml-1">
+            <X size={22} />
+          </button>
+        </div>
+        <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+          <img
+            src={docUrl}
+            alt="Ticket"
+            draggable={false}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: 'auto',
+              transformOrigin: 'top left',
+              transform: `translate(${panX}px, ${panY}px) scale(${docZoom})`,
+              willChange: 'transform',
+              userSelect: 'none',
+            }}
+          />
+          <div ref={overlayRef} style={{ position: 'absolute', inset: 0, zIndex: 1 }} />
+        </div>
+      </div>
+    )
+  }
 
   if (showPdf && viewerSrc && !ticket.fileUrl) {
     return (
@@ -495,15 +553,62 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign }: ModalProp
               <p className="text-xs text-indigo-300">{data.passengerName}</p>
             )}
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
-            <X size={20} />
-          </button>
+          {editing ? (
+            <div className="flex items-center gap-2">
+              <button onClick={() => setEditing(false)} className="text-slate-400 hover:text-white p-1"><X size={18} /></button>
+              <button onClick={saveEdit} className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg">
+                <Check size={13} /> Save
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1">
+              <button onClick={startEdit} className="text-slate-400 hover:text-white p-1" title="Edit ticket">
+                <Pencil size={16} />
+              </button>
+              <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
+                <X size={20} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
           {/* Parsed details */}
-          <div className="p-4 grid grid-cols-2 gap-x-6 gap-y-2.5">
+          <div className="p-4 grid grid-cols-2 gap-x-4 gap-y-3">
+            {editing ? (<>
+              {(data.type === 'flight' || data.type === 'train') && (<>
+                <EditField label="From (IATA)" value={draft.origin ?? ''} onChange={v => set('origin', v.toUpperCase().slice(0,3))} />
+                <EditField label="To (IATA)" value={draft.destination ?? ''} onChange={v => set('destination', v.toUpperCase().slice(0,3))} />
+                <EditField label="Flight no." value={draft.flightNumber ?? ''} onChange={v => set('flightNumber', v)} />
+                <EditField label="Date" value={draft.date ?? ''} onChange={v => set('date', v)} />
+                <EditField label="Departs" value={draft.departureTime ?? ''} onChange={v => set('departureTime', v)} placeholder="09:25" />
+                <EditField label="Arrives" value={draft.arrivalTime ?? ''} onChange={v => set('arrivalTime', v)} placeholder="05:45" />
+                <EditField label="Airline" value={draft.airline ?? ''} onChange={v => set('airline', v)} wide />
+                <EditField label="Class" value={draft.cabinClass ?? ''} onChange={v => set('cabinClass', v)} />
+                <EditField label="Seat" value={draft.seat ?? ''} onChange={v => set('seat', v)} />
+                <EditField label="Gate" value={draft.gate ?? ''} onChange={v => set('gate', v)} />
+                <EditField label="Dep. terminal" value={draft.depTerminal ?? ''} onChange={v => set('depTerminal', v)} />
+                <EditField label="Arr. terminal" value={draft.arrTerminal ?? ''} onChange={v => set('arrTerminal', v)} />
+                <EditField label="Booking ref" value={draft.bookingRef ?? ''} onChange={v => set('bookingRef', v)} />
+                <EditField label="Passenger" value={draft.passengerName ?? ''} onChange={v => set('passengerName', v)} wide />
+              </>)}
+              {data.type === 'hotel' && (<>
+                <EditField label="Hotel" value={draft.hotelName ?? ''} onChange={v => set('hotelName', v)} wide />
+                <EditField label="Check-in" value={draft.checkIn ?? ''} onChange={v => set('checkIn', v)} />
+                <EditField label="Check-out" value={draft.checkOut ?? ''} onChange={v => set('checkOut', v)} />
+                <EditField label="Room type" value={draft.roomType ?? ''} onChange={v => set('roomType', v)} wide />
+                <EditField label="Booking ref" value={draft.bookingRef ?? ''} onChange={v => set('bookingRef', v)} />
+                <EditField label="Guest name" value={draft.passengerName ?? ''} onChange={v => set('passengerName', v)} wide />
+              </>)}
+              {data.type === 'car' && (<>
+                <EditField label="Company" value={draft.rentalCompany ?? ''} onChange={v => set('rentalCompany', v)} />
+                <EditField label="Pick-up" value={draft.pickupLocation ?? ''} onChange={v => set('pickupLocation', v)} wide />
+                <EditField label="Drop-off" value={draft.dropoffLocation ?? ''} onChange={v => set('dropoffLocation', v)} wide />
+                <EditField label="Date" value={draft.date ?? ''} onChange={v => set('date', v)} />
+                <EditField label="Booking ref" value={draft.bookingRef ?? ''} onChange={v => set('bookingRef', v)} />
+              </>)}
+            </>) : (<>
             {data.origin && data.destination && (
               <ModalField label="Route" value={`${data.origin} → ${data.destination}`} wide />
             )}
@@ -530,6 +635,7 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign }: ModalProp
             {data.roomType && <ModalField label="Room" value={data.roomType} />}
             {data.rentalCompany && <ModalField label="Rental" value={data.rentalCompany} />}
             {data.pickupLocation && <ModalField label="Pick-up" value={data.pickupLocation} wide />}
+            </>)}
           </div>
 
           {/* Original document */}
@@ -539,11 +645,17 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign }: ModalProp
             </p>
             {docUrl ? (
               isImage ? (
-                <img
-                  src={docUrl}
-                  alt="Ticket"
-                  className="w-full rounded-lg object-contain max-h-96 bg-slate-800"
-                />
+                <button
+                  onClick={() => { setDocZoom(1); setPanX(0); setPanY(0); setShowImage(true) }}
+                  className="w-full block"
+                >
+                  <img
+                    src={docUrl}
+                    alt="Ticket"
+                    className="w-full rounded-lg object-contain max-h-96 bg-slate-800"
+                  />
+                  <p className="text-xs text-slate-500 text-center mt-2">Tap to zoom</p>
+                </button>
               ) : (
                 <button
                   onClick={() => {
@@ -619,6 +731,22 @@ function ModalField({ label, value, wide }: { label: string; value: string; wide
     <div className={wide ? 'col-span-2' : ''}>
       <p className="text-xs text-slate-500">{label}</p>
       <p className="text-sm text-white font-medium mt-0.5">{value}</p>
+    </div>
+  )
+}
+
+function EditField({ label, value, onChange, wide, placeholder }: {
+  label: string; value: string; onChange: (v: string) => void; wide?: boolean; placeholder?: string
+}) {
+  return (
+    <div className={wide ? 'col-span-2' : ''}>
+      <p className="text-xs text-slate-500 mb-1">{label}</p>
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full bg-slate-800 text-sm text-white rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-600"
+      />
     </div>
   )
 }

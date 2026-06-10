@@ -39,6 +39,12 @@ export default function TripPage() {
     })
   }, [id])
 
+  useEffect(() => {
+    if (!trip) return
+    if (activeTab === 'expenses' && !trip.settings.showExpenses) setActiveTab('tickets')
+    else if (activeTab === 'car' && !trip.settings.showCar) setActiveTab('tickets')
+  }, [trip?.settings.showExpenses, trip?.settings.showCar, activeTab])
+
   if (!trip) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">Loading…</div>
 
   const isOwner = trip.ownerId === user?.uid

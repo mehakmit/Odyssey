@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { GoogleAuthProvider, OAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth'
+import { GoogleAuthProvider, OAuthProvider, signInWithCredential, signInWithPopup, updateProfile } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { Navigate, useLocation } from 'react-router-dom'
@@ -71,10 +71,16 @@ export default function AuthPage() {
         provider: 'apple',
         options: { scopes: ['email', 'name'] },
       })
-      const { idToken } = result.result as any
+      const appleResult = result.result as any
+      const { idToken } = appleResult
       const provider = new OAuthProvider('apple.com')
       const credential = provider.credential({ idToken })
-      await signInWithCredential(auth, credential)
+      const userCredential = await signInWithCredential(auth, credential)
+      const profile = appleResult.profile
+      if (profile && (profile.givenName || profile.familyName) && !userCredential.user.displayName) {
+        const displayName = [profile.givenName, profile.familyName].filter(Boolean).join(' ')
+        await updateProfile(userCredential.user, { displayName })
+      }
     } catch (err: any) {
       if (err?.message !== 'The user closed the sign in dialog.') {
         setError(err.message)
