@@ -1,0 +1,29 @@
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'app.odyssey',
+  appName: 'Odyssey',
+  webDir: 'dist',
+  server: {
+    url: 'https://myodyssey.live',
+    cleartext: false,
+  },
+  ios: {
+    contentInset: 'automatic',
+    backgroundColor: '#070e1c',
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 0,
+    },
+    SocialLogin: {
+      google: {
+        webClientId: '947837806868-m7rrbj27g3atsk0bqadtcrdkkq6b18q3.apps.googleusercontent.com',
+        iOSClientId: '947837806868-m7rrbj27g3atsk0bqadtcrdkkq6b18q3.apps.googleusercontent.com',
+      },
+      apple: {},
+    },
+  },
+};
+
+export default config;

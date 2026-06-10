@@ -1,0 +1,53 @@
+name: iOS → TestFlight
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Select latest Xcode
+        run: sudo xcode-select -s $(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+
+      - name: Install npm dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+
+      - name: Install Fastlane
+        run: gem install fastlane --no-document
+
+      - name: Write App Store Connect API key
+        run: |
+          mkdir -p ~/.private_keys
+          echo "$ASC_PRIVATE_KEY" > ~/.private_keys/AuthKey_${ASC_KEY_ID}.p8
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+
+      - name: Compute build number
+        id: buildnum
+        run: echo "num=$(( ${{ github.run_number }} - 16 ))" >> $GITHUB_OUTPUT
+
+      - name: Build and upload to TestFlight
+        run: cd ios/App && fastlane beta
+        env:
+          ASC_KEY_ID:     ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID:  ${{ secrets.ASC_ISSUER_ID }}
+          BUILD_NUMBER:   ${{ steps.buildnum.outputs.num }}
