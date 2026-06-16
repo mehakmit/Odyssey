@@ -15,10 +15,9 @@ export default function TripSettingsModal({ trip, onClose, onDelete }: { trip: T
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  const inviteUrl = `https://myodyssey.live/join/${trip.inviteToken}`
-
-  async function copyInvite() {
-    await navigator.clipboard.writeText(inviteUrl)
+  async function copyCode() {
+    if (!trip.inviteToken) return
+    await navigator.clipboard.writeText(trip.inviteToken)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -108,13 +107,13 @@ export default function TripSettingsModal({ trip, onClose, onDelete }: { trip: T
           </button>
         </div>
 
-        {/* Invite link */}
+        {/* Trip code */}
         <div>
-          <p className="text-xs font-medium text-slate-400 mb-1">Invite link</p>
-          <p className="text-xs text-slate-600 mb-2">Share this link — recipients will need the Odyssey app installed first.</p>
+          <p className="text-xs font-medium text-slate-400 mb-1">Trip code</p>
+          <p className="text-xs text-slate-600 mb-2">Share this code — others can enter it in the app to join.</p>
           <div className="flex items-center gap-2">
-            <p className="flex-1 bg-slate-800 text-slate-300 text-xs rounded-lg px-3 py-2 truncate">{inviteUrl}</p>
-            <button onClick={copyInvite} className="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg p-2">
+            <p className="flex-1 bg-slate-800 text-slate-200 text-xs rounded-lg px-3 py-2 font-mono tracking-widest truncate">{trip.inviteToken ?? '—'}</p>
+            <button onClick={copyCode} className="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg p-2">
               {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
             </button>
           </div>

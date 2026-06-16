@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTripNotes } from '@/hooks/useTripNotes'
 import { Trash2, Plus, Check } from 'lucide-react'
+import type { Trip } from '@/types'
 
 const CATEGORIES = [
   { key: 'sight',    emoji: '🏛️', label: 'Sight' },
@@ -10,12 +11,129 @@ const CATEGORIES = [
   { key: 'other',    emoji: '📌', label: 'Other' },
 ]
 
-export default function NotesTab({ tripId }: { tripId: string }) {
+type WishItem = { title: string; category: string }
+
+function getDestWishlist(destinations: string[]): WishItem[] {
+  const dest = destinations.join(' ').toLowerCase()
+  const out: WishItem[] = []
+
+  if (dest.includes('london') || dest.includes('england')) out.push(
+    { title: 'Tower of London', category: 'sight' },
+    { title: 'Borough Market', category: 'food' },
+    { title: 'Tate Modern', category: 'sight' },
+    { title: 'Notting Hill', category: 'activity' },
+    { title: 'West End show', category: 'activity' },
+  )
+  if (dest.includes('paris') || dest.includes('france')) out.push(
+    { title: 'Eiffel Tower', category: 'sight' },
+    { title: 'Louvre Museum', category: 'sight' },
+    { title: 'Montmartre walk', category: 'activity' },
+    { title: 'Seine cruise', category: 'activity' },
+    { title: 'Croissant tasting', category: 'food' },
+  )
+  if (dest.includes('singapore')) out.push(
+    { title: 'Gardens by the Bay', category: 'sight' },
+    { title: 'Marina Bay Sands', category: 'sight' },
+    { title: 'Hawker centre meal', category: 'food' },
+    { title: 'Sentosa Island', category: 'activity' },
+    { title: 'Chinatown night market', category: 'food' },
+  )
+  if (dest.includes('bali')) out.push(
+    { title: 'Tegalalang Rice Terraces', category: 'sight' },
+    { title: 'Uluwatu Temple', category: 'sight' },
+    { title: 'Cooking class', category: 'activity' },
+    { title: 'Seminyak beach', category: 'activity' },
+    { title: 'Ubud market', category: 'shopping' },
+  )
+  if (dest.includes('tokyo') || dest.includes('japan')) out.push(
+    { title: 'Shibuya Crossing', category: 'sight' },
+    { title: 'Senso-ji Temple', category: 'sight' },
+    { title: 'Ramen dinner', category: 'food' },
+    { title: 'teamLab digital art', category: 'activity' },
+    { title: 'Harajuku', category: 'activity' },
+  )
+  if (dest.includes('rome') || (dest.includes('italy') && !dest.includes('milan'))) out.push(
+    { title: 'Colosseum', category: 'sight' },
+    { title: 'Vatican Museums', category: 'sight' },
+    { title: 'Trevi Fountain', category: 'sight' },
+    { title: 'Gelato tasting', category: 'food' },
+  )
+  if (dest.includes('barcelona') || dest.includes('spain')) out.push(
+    { title: 'Sagrada Família', category: 'sight' },
+    { title: 'Park Güell', category: 'sight' },
+    { title: 'Tapas tasting', category: 'food' },
+    { title: 'La Boqueria', category: 'food' },
+  )
+  if (dest.includes('amsterdam')) out.push(
+    { title: 'Rijksmuseum', category: 'sight' },
+    { title: 'Anne Frank House', category: 'sight' },
+    { title: 'Canal cruise', category: 'activity' },
+    { title: 'Jordaan neighbourhood', category: 'activity' },
+  )
+  if (dest.includes('new york') || dest.includes('nyc') || dest.includes('manhattan')) out.push(
+    { title: 'Central Park', category: 'sight' },
+    { title: 'The High Line', category: 'activity' },
+    { title: 'Brooklyn Bridge', category: 'sight' },
+    { title: 'MoMA', category: 'sight' },
+  )
+  if (dest.includes('dubai')) out.push(
+    { title: 'Burj Khalifa', category: 'sight' },
+    { title: 'Dubai Mall', category: 'shopping' },
+    { title: 'Desert safari', category: 'activity' },
+    { title: 'Old Dubai Creek', category: 'sight' },
+  )
+  if (dest.includes('bangkok') || dest.includes('thailand')) out.push(
+    { title: 'Wat Pho', category: 'sight' },
+    { title: 'Grand Palace', category: 'sight' },
+    { title: 'Street food tour', category: 'food' },
+    { title: 'Floating market', category: 'activity' },
+  )
+  if (dest.includes('lisbon') || dest.includes('portugal')) out.push(
+    { title: 'Alfama district', category: 'sight' },
+    { title: 'Pastéis de Belém', category: 'food' },
+    { title: 'Sintra day trip', category: 'activity' },
+    { title: 'LX Factory', category: 'shopping' },
+  )
+  if (dest.includes('iceland') || dest.includes('reykjavik')) out.push(
+    { title: 'Northern Lights tour', category: 'activity' },
+    { title: 'Blue Lagoon', category: 'activity' },
+    { title: 'Golden Circle', category: 'activity' },
+    { title: 'Skógafoss waterfall', category: 'sight' },
+  )
+  if (dest.includes('maldives')) out.push(
+    { title: 'Snorkelling trip', category: 'activity' },
+    { title: 'Sunrise kayaking', category: 'activity' },
+    { title: 'Overwater dinner', category: 'food' },
+  )
+  if (dest.includes('hong kong')) out.push(
+    { title: 'Victoria Peak', category: 'sight' },
+    { title: 'Dim sum breakfast', category: 'food' },
+    { title: 'Star Ferry', category: 'activity' },
+    { title: 'Temple Street Market', category: 'shopping' },
+  )
+  if (dest.includes('milan') || dest.includes('italy')) out.push(
+    { title: 'Duomo di Milano', category: 'sight' },
+    { title: 'The Last Supper', category: 'sight' },
+    { title: 'Brera district', category: 'activity' },
+    { title: 'Aperitivo hour', category: 'food' },
+  )
+
+  return out
+}
+
+export default function NotesTab({ trip }: { trip: Trip }) {
+  const tripId = trip.id
   const { notes, addNote, toggleNote, deleteNote } = useTripNotes(tripId)
   const [showForm, setShowForm] = useState(false)
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('sight')
   const [noteText, setNoteText] = useState('')
+
+  const destinations = trip.destinations ?? [trip.destination]
+  const destWishlist = useMemo(() => getDestWishlist(destinations), [destinations.join(',')])
+  const unaddedWishlist = destWishlist.filter(s =>
+    !notes.some(n => n.title.toLowerCase() === s.title.toLowerCase())
+  )
 
   const sorted = [...notes].sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1
@@ -118,6 +236,29 @@ export default function NotesTab({ tripId }: { tripId: string }) {
           )
         })}
       </div>
+
+      {unaddedWishlist.length > 0 && (
+        <div className="px-4 mt-5">
+          <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest mb-2">
+            Ideas for {destinations.map(d => d.split(',')[0].trim()).join(' · ')}
+          </p>
+          <div className="space-y-2">
+            {unaddedWishlist.map(s => {
+              const cat = CATEGORIES.find(c => c.key === s.category)
+              return (
+                <button key={s.title} type="button"
+                  onClick={() => addNote({ title: s.title, category: s.category, notes: '', done: false })}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-colors"
+                  style={{ background: '#0c1b30', border: '1px dashed rgba(255,255,255,0.08)' }}>
+                  <span>{cat?.emoji}</span>
+                  <span className="flex-1 text-sm text-white">{s.title}</span>
+                  <span className="text-xs text-slate-500 shrink-0">+ Add</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -11,6 +11,13 @@ interface Props { trip: Trip }
 
 const ALL_CURRENCIES = ['GBP', 'USD', 'EUR', 'AUD', 'CAD', 'CHF', 'SEK', 'NOK', 'DKK', 'JPY', 'SGD', 'MYR', 'HKD', 'AED', 'INR', 'THB', 'IDR', 'VND', 'CNY', 'KRW', 'NZD', 'BRL', 'MXN', 'ZAR', 'TRY', 'PHP']
 
+function currSym(code: string): string {
+  try {
+    const parts = new Intl.NumberFormat('en', { style: 'currency', currency: code }).formatToParts(0)
+    return parts.find(p => p.type === 'currency')?.value ?? code
+  } catch { return code }
+}
+
 interface Debt {
   from: string
   fromName: string
@@ -233,6 +240,7 @@ export default function ExpensesTab({ trip }: Props) {
           <form onSubmit={addExpense} className="space-y-3">
             <input placeholder="What was it?" required value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+              style={{ fontSize: 16 }}
               className="w-full bg-slate-800 text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500" />
             <div className="flex gap-2">
               <input type="number" placeholder="Amount" required step="0.01" min="0" value={form.amount}
@@ -284,7 +292,7 @@ export default function ExpensesTab({ trip }: Props) {
             <div className="font-mono text-[10px] text-white/50 uppercase tracking-widest">Trip total</div>
             <div className="flex items-baseline gap-1 mt-1.5">
               <span className="font-display italic text-white leading-none" style={{ fontSize: 64, letterSpacing: -2 }}>
-                {baseCurrency === 'GBP' ? '£' : baseCurrency === 'USD' ? '$' : baseCurrency === 'EUR' ? '€' : ''}{Math.floor(total).toLocaleString()}
+                {currSym(baseCurrency)}{Math.floor(total).toLocaleString()}
               </span>
               <span className="text-white/60 text-lg">.{String(Math.round((total % 1) * 100)).padStart(2, '0')}</span>
             </div>
@@ -298,9 +306,9 @@ export default function ExpensesTab({ trip }: Props) {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3 mt-4">
               {[
-                { k: `${baseCurrency === 'GBP' ? '£' : baseCurrency === 'EUR' ? '€' : ''}${(total / Math.max(members.length, 1)).toFixed(0)}`, l: 'each, fair' },
-                { k: `${baseCurrency === 'GBP' ? '£' : baseCurrency === 'EUR' ? '€' : ''}${Math.abs(myNet).toFixed(0)}`, l: myNet > 0 ? "you're owed" : myNet < 0 ? 'you owe' : 'settled', accent: myNet !== 0 },
-                { k: `${baseCurrency === 'GBP' ? '£' : baseCurrency === 'EUR' ? '€' : ''}${(total / tripDays).toFixed(0)}`, l: 'avg / day' },
+                { k: `${currSym(baseCurrency)}${(total / Math.max(members.length, 1)).toFixed(0)}`, l: 'each, fair' },
+                { k: `${currSym(baseCurrency)}${Math.abs(myNet).toFixed(0)}`, l: myNet > 0 ? "you're owed" : myNet < 0 ? 'you owe' : 'settled', accent: myNet !== 0 },
+                { k: `${currSym(baseCurrency)}${(total / tripDays).toFixed(0)}`, l: 'avg / day' },
               ].map((s, i) => (
                 <div key={i}>
                   <div className="font-display italic text-2xl leading-none" style={{ color: s.accent ? '#e76a55' : '#fff' }}>{s.k}</div>
@@ -334,7 +342,7 @@ export default function ExpensesTab({ trip }: Props) {
                 </div>
                 <div className="text-right shrink-0">
                   <div className="font-display italic text-xl text-white leading-none">
-                    {baseCurrency === 'GBP' ? '£' : baseCurrency === 'EUR' ? '€' : ''}{debt.amount.toFixed(2)}
+                    {currSym(baseCurrency)}{debt.amount.toFixed(2)}
                   </div>
                   <div className="font-mono text-[9px] text-slate-500 uppercase mt-0.5">Pending</div>
                 </div>

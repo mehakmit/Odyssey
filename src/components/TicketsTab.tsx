@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useTickets } from '@/hooks/useTickets'
 import { useAuth } from '@/hooks/useAuth'
@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase'
 import { tryParseDate } from '@/lib/parseDate'
 import {
   Upload, Plane, Train, Hotel, Bus, Ticket, Car, Trash2, Loader2,
-  User, X, ExternalLink, FileText,
+  User, X, FileText, ExternalLink,
 } from 'lucide-react'
 import { loadFile, loadFileRemote } from '@/lib/fileStore'
 import type { Ticket as TicketType, TicketType as TType, Trip } from '@/types'
@@ -23,7 +23,8 @@ export default function TicketsTab({ tripId }: { tripId: string }) {
   const [uploadCount, setUploadCount] = useState(0)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [trip, setTrip] = useState<Trip | null>(null)
-  const [selectedTicket, setSelectedTicket] = useState<TicketType | null>(null)
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
+  const selectedTicket = selectedTicketId ? tickets.find(t => t.id === selectedTicketId) ?? null : null
 
   useState(() => {
     const unsub = onSnapshot(doc(db, 'trips', tripId), snap => {
@@ -121,7 +122,7 @@ export default function TicketsTab({ tripId }: { tripId: string }) {
               key={ticket.id}
               ticket={ticket}
               members={members as any[]}
-              onOpen={() => setSelectedTicket(ticket)}
+              onOpen={() => setSelectedTicketId(ticket.id)}
               onDelete={() => deleteTicket(ticket.id)}
               onAssign={uid => assignTicket(ticket.id, uid)}
             />
@@ -139,8 +140,8 @@ export default function TicketsTab({ tripId }: { tripId: string }) {
         <TicketModal
           ticket={selectedTicket}
           members={members as any[]}
-          onClose={() => setSelectedTicket(null)}
-          onDelete={() => { deleteTicket(selectedTicket.id); setSelectedTicket(null) }}
+          onClose={() => setSelectedTicketId(null)}
+          onDelete={() => { deleteTicket(selectedTicket.id); setSelectedTicketId(null) }}
           onAssign={uid => assignTicket(selectedTicket.id, uid)}
         />
       )}
@@ -318,20 +319,25 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign }: ModalProp
   const Icon = TYPE_ICONS[data.type] ?? Ticket
   const isImage = ticket.fileType?.startsWith('image/')
   const [docUrl, setDocUrl] = useState<string | null>(ticket.fileUrl ?? null)
+  const [viewerSrc, setViewerSrc] = useState<string | null>(null)
+  const [showPdf, setShowPdf] = useState(false)
+  const [docZoom, setDocZoom] = useState(0.6)
+  const [panX, setPanX] = useState(0)
+  const [panY, setPanY] = useState(0)
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const stateRef = useRef({ docZoom: 0.6, panX: 0, panY: 0 })
 
   // Load file: IndexedDB (same device) → Firestore base64 (any device) → Firebase Storage URL
   useEffect(() => {
     if (docUrl || !ticket.localFileKey) return
     let blobUrl: string
     ;(async () => {
-      // 1. Try local IndexedDB
       const localFile = await loadFile(ticket.localFileKey!)
       if (localFile) {
         blobUrl = URL.createObjectURL(localFile)
         setDocUrl(blobUrl)
         return
       }
-      // 2. Try Firestore (cross-device base64)
       const dataUrl = await loadFileRemote(ticket.localFileKey!)
       if (dataUrl) {
         const resp = await fetch(dataUrl)
@@ -342,6 +348,132 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign }: ModalProp
     })()
     return () => { if (blobUrl) URL.revokeObjectURL(blobUrl) }
   }, [ticket.localFileKey, ticket.fileUrl])
+
+  // Preprocess blob HTML content to inject mobile viewport + responsive CSS before rendering
+  useEffect(() => {
+    if (!docUrl) return
+    let preprocessed: string | null = null
+    ;(async () => {
+      if (!docUrl.startsWith('blob:')) { setViewerSrc(docUrl); return }
+      try {
+        const text = await fetch(docUrl).then(r => r.text())
+        if (!/<html|<!doctype/i.test(text)) { setViewerSrc(docUrl); return }
+        const inject = [
+          '<meta name="viewport" content="width=device-width, initial-scale=1">',
+          '<style>body { margin: 8px !important; }</style>',
+        ].join('')
+        // Strip fixed pixel widths from HTML attributes (CSS !important can't override these)
+        const stripped = text.replace(/(<(?:table|td|th|div|center)[^>]*?)\s+width=["']?\d+(?:px)?["']?/gi, '$1')
+        const modified = /<head/i.test(stripped)
+          ? stripped.replace(/(<head[^>]*>)/i, `$1${inject}`)
+          : inject + stripped
+        preprocessed = URL.createObjectURL(new Blob([modified], { type: 'text/html' }))
+        setViewerSrc(preprocessed)
+      } catch {
+        setViewerSrc(docUrl)
+      }
+    })()
+    return () => { if (preprocessed) URL.revokeObjectURL(preprocessed) }
+  }, [docUrl])
+
+  useEffect(() => { stateRef.current = { docZoom, panX, panY } }, [docZoom, panX, panY])
+
+  useEffect(() => {
+    const el = overlayRef.current
+    if (!el) return
+    let g: {
+      type: 'pan' | 'pinch'; zoom0: number; panX0: number; panY0: number
+      x0: number; y0: number; dist0: number; midX0: number; midY0: number
+    } | null = null
+    function d2(t1: Touch, t2: Touch) {
+      const dx = t1.clientX - t2.clientX, dy = t1.clientY - t2.clientY
+      return Math.sqrt(dx * dx + dy * dy)
+    }
+    function onStart(e: TouchEvent) {
+      e.preventDefault()
+      const { docZoom: z, panX: px, panY: py } = stateRef.current
+      if (e.touches.length === 2) {
+        const dist = d2(e.touches[0], e.touches[1])
+        const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2
+        const my = (e.touches[0].clientY + e.touches[1].clientY) / 2
+        g = { type: 'pinch', zoom0: z, panX0: px, panY0: py, x0: 0, y0: 0, dist0: dist, midX0: mx, midY0: my }
+      } else if (e.touches.length === 1) {
+        g = { type: 'pan', zoom0: z, panX0: px, panY0: py, x0: e.touches[0].clientX, y0: e.touches[0].clientY, dist0: 0, midX0: 0, midY0: 0 }
+      }
+    }
+    function onMove(e: TouchEvent) {
+      e.preventDefault()
+      if (!g) return
+      if (g.type === 'pinch' && e.touches.length === 2) {
+        const dist = d2(e.touches[0], e.touches[1])
+        const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2
+        const my = (e.touches[0].clientY + e.touches[1].clientY) / 2
+        const newZoom = Math.min(Math.max(g.zoom0 * dist / g.dist0, 0.2), 4.0)
+        const r = newZoom / g.zoom0
+        setDocZoom(newZoom)
+        setPanX(mx - (g.midX0 - g.panX0) * r)
+        setPanY(my - (g.midY0 - g.panY0) * r)
+      } else if (g.type === 'pan' && e.touches.length === 1) {
+        setPanX(g.panX0 + e.touches[0].clientX - g.x0)
+        setPanY(g.panY0 + e.touches[0].clientY - g.y0)
+      }
+    }
+    function onEnd() { g = null }
+    el.addEventListener('touchstart', onStart, { passive: false })
+    el.addEventListener('touchmove', onMove, { passive: false })
+    el.addEventListener('touchend', onEnd)
+    return () => {
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchmove', onMove)
+      el.removeEventListener('touchend', onEnd)
+    }
+  }, [showPdf])
+
+  if (showPdf && viewerSrc && !ticket.fileUrl) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-slate-950"
+        style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="flex items-center gap-2 px-4 py-3 bg-slate-900 border-b border-slate-800 shrink-0">
+          <button onClick={() => setShowPdf(false)} className="text-slate-400 hover:text-white p-1 -ml-1 shrink-0">
+            <X size={20} />
+          </button>
+          <p className="text-white text-sm font-medium flex-1 truncate min-w-0">{ticket.fileName}</p>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => setDocZoom(z => Math.max(+(z - 0.3).toFixed(2), 0.2))}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 text-slate-200 text-xl leading-none"
+            >−</button>
+            <button
+              onClick={() => setDocZoom(z => Math.min(+(z + 0.3).toFixed(2), 4.0))}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 text-slate-200 text-xl leading-none"
+            >+</button>
+          </div>
+        </div>
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative' } as React.CSSProperties}>
+          <iframe
+            src={viewerSrc}
+            style={{
+              display: 'block',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '167%',
+              height: '3000px',
+              border: 'none',
+              transformOrigin: 'top left',
+              transform: `translate(${panX}px, ${panY}px) scale(${docZoom})`,
+              pointerEvents: 'none',
+              willChange: 'transform',
+            }}
+            title={ticket.fileName}
+          />
+          {/* Transparent overlay catches all touches before the iframe can swallow them */}
+          <div ref={overlayRef} style={{ position: 'absolute', inset: 0, zIndex: 1 }} />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -414,15 +546,21 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign }: ModalProp
                 />
               ) : (
                 <button
-                  onClick={() => window.open(docUrl!, '_blank')}
+                  onClick={() => {
+                    if (ticket.fileUrl) {
+                      window.open(ticket.fileUrl, '_system')
+                    } else {
+                      setDocZoom(0.6); setPanX(0); setPanY(0); setShowPdf(true)
+                    }
+                  }}
                   className="w-full flex items-center gap-3 bg-slate-800 hover:bg-slate-700 rounded-xl p-4 transition-colors text-left"
                 >
                   <FileText size={24} className="text-indigo-400 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white truncate">{ticket.fileName}</p>
-                    <p className="text-xs text-slate-400">Tap to open PDF</p>
+                    <p className="text-xs text-slate-400">Tap to open</p>
                   </div>
-                  <ExternalLink size={16} className="text-slate-400 shrink-0" />
+                  <ExternalLink size={16} className="text-slate-500 shrink-0" />
                 </button>
               )
             ) : (
@@ -448,6 +586,7 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign }: ModalProp
                 className="flex-1 bg-slate-800 text-slate-300 text-xs rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="">Assign to...</option>
+                <option value="all">Everyone</option>
                 {members.map(m => (
                   <option key={m.uid} value={m.uid}>{m.displayName ?? m.email}</option>
                 ))}
