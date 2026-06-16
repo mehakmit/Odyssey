@@ -10,16 +10,20 @@ export default function AuthPage() {
   const { user, loading: authLoading } = useAuth()
   const location = useLocation()
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [loadingGoogle, setLoadingGoogle] = useState(false)
+  const [loadingApple, setLoadingApple] = useState(false)
+  const [needsName, setNeedsName] = useState(false)
+  const [nameInput, setNameInput] = useState('')
+  const [savingName, setSavingName] = useState(false)
+  const loading = loadingGoogle || loadingApple
 
   const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/'
 
-  // While Firebase is restoring auth state, show nothing to avoid a flash
   if (authLoading) {
     return <div style={{ background: '#020817', minHeight: '100dvh' }} />
   }
 
-  if (user) return <Navigate to={from} replace />
+  if (user && !needsName) return <Navigate to={from} replace />
 
   function checkNative() {
     return !!(window as any).Capacitor?.isNativePlatform?.()
@@ -27,7 +31,7 @@ export default function AuthPage() {
 
   async function signInWithGoogle() {
     setError('')
-    setLoading(true)
+    setLoadingGoogle(true)
     try {
       if (checkNative() && (window as any).Capacitor?.isPluginAvailable?.('SocialLogin')) {
         const { SocialLogin } = await import('@capgo/capacitor-social-login')
@@ -37,7 +41,6 @@ export default function AuthPage() {
             iOSClientId: '947837806868-m7rrbj27g3atsk0bqadtcrdkkq6b18q3.apps.googleusercontent.com',
           },
         })
-        // Clear any cached Google session so the account picker always shows
         try { await SocialLogin.logout({ provider: 'google' }) } catch {}
         const result = await SocialLogin.login({ provider: 'google', options: {} })
         const { idToken, accessToken } = result.result as any
@@ -52,17 +55,17 @@ export default function AuthPage() {
       if (msg !== 'The user closed the sign in dialog.' && code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
         setError(msg || code || 'Sign in failed')
       }
-      setLoading(false)
+      setLoadingGoogle(false)
     }
   }
 
   async function signInWithApple() {
     setError('')
-    setLoading(true)
+    setLoadingApple(true)
     try {
       if (!(window as any).Capacitor?.isPluginAvailable?.('SocialLogin')) {
         setError('Please update the app to use Sign in with Apple.')
-        setLoading(false)
+        setLoadingApple(false)
         return
       }
       const { SocialLogin } = await import('@capgo/capacitor-social-login')
@@ -76,34 +79,79 @@ export default function AuthPage() {
       const provider = new OAuthProvider('apple.com')
       const credential = provider.credential({ idToken })
       const userCredential = await signInWithCredential(auth, credential)
+
       const profile = appleResult.profile
       if (profile && (profile.givenName || profile.familyName) && !userCredential.user.displayName) {
         const displayName = [profile.givenName, profile.familyName].filter(Boolean).join(' ')
         await updateProfile(userCredential.user, { displayName })
+      } else if (!userCredential.user.displayName) {
+        // Apple didn't send name (returning user) — prompt manually
+        setLoadingApple(false)
+        setNeedsName(true)
+        return
       }
     } catch (err: any) {
       if (err?.message !== 'The user closed the sign in dialog.') {
         setError(err.message)
       }
-      setLoading(false)
+      setLoadingApple(false)
     }
   }
 
+  async function saveName() {
+    const name = nameInput.trim()
+    if (!name || !auth.currentUser) return
+    setSavingName(true)
+    await updateProfile(auth.currentUser, { displayName: name })
+    setNeedsName(false)
+  }
+
+  const containerStyle = {
+    height: '100dvh',
+    overflowY: 'auto' as const,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '1rem',
+    paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
+    paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+  }
+
+  if (needsName) {
+    return (
+      <div className="bg-slate-950" style={containerStyle}>
+        <div className="w-full max-w-sm">
+          <div className="flex flex-col items-center mb-8">
+            <OdysseyIcon size={80} variant="icon" />
+            <h1 className="font-display italic text-4xl text-white mt-4">Odyssey</h1>
+            <p className="text-slate-400 mt-1">What should we call you?</p>
+          </div>
+          <div className="bg-slate-900 rounded-2xl p-6 space-y-3">
+            <input
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveName()}
+              placeholder="Your name"
+              autoFocus
+              style={{ fontSize: 16 }}
+              className="w-full bg-slate-800 text-white rounded-lg px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-600"
+            />
+            <button
+              onClick={saveName}
+              disabled={!nameInput.trim() || savingName}
+              className="w-full bg-indigo-600 disabled:opacity-50 text-white rounded-lg py-3 text-sm font-medium"
+            >
+              {savingName ? 'Saving…' : 'Continue'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div
-      className="bg-slate-950"
-      style={{
-        height: '100dvh',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem',
-        paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
-        paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
-      }}
-    >
+    <div className="bg-slate-950" style={containerStyle}>
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           <OdysseyIcon size={80} variant="icon" />
@@ -121,7 +169,7 @@ export default function AuthPage() {
               <svg width="16" height="20" viewBox="0 0 16 20" fill="white" style={{ overflow: 'visible' }}>
                 <path d="M13.27 9.93c-.02-2.04 1.67-3.02 1.74-3.07C13.97 4.8 12.3 4.6 11.7 4.58c-1.38-.14-2.7.82-3.4.82-.7 0-1.78-.8-2.93-.78C3.83 4.65 2.3 5.67 1.47 7.2-.23 10.3.84 14.9 2.5 17.38c.82 1.2 1.8 2.54 3.08 2.49 1.24-.05 1.71-.8 3.21-.8 1.5 0 1.93.8 3.24.78 1.34-.02 2.18-1.22 2.99-2.43.95-1.39 1.34-2.74 1.36-2.81-.03-.01-2.6-1-2.61-3.68zM10.72 2.94C11.38 2.14 11.82 1.02 11.7 0c-.97.04-2.14.65-2.83 1.44C8.22 2.2 7.68 3.34 7.82 4.34c1.08.08 2.19-.55 2.9-1.4z"/>
               </svg>
-              Sign in with Apple
+              {loadingApple ? 'Signing in…' : 'Sign in with Apple'}
             </button>
           )}
 
@@ -136,7 +184,7 @@ export default function AuthPage() {
               <path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/>
               <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 6.293C4.672 4.166 6.656 3.58 9 3.58z"/>
             </svg>
-            {loading ? 'Signing in…' : 'Sign in with Google'}
+            {loadingGoogle ? 'Signing in…' : 'Sign in with Google'}
           </button>
 
           {error && (
