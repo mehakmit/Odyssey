@@ -165,25 +165,28 @@ function useWeather(destination: string) {
 }
 
 function MemberAvatars({ members }: { members: Record<string, TripMember> }) {
-  const entries = Object.values(members).slice(0, 4)
+  const entries = Object.values(members).slice(0, 3)
+  const total = Object.keys(members).length
   if (entries.length === 0) return null
   return (
-    <div className="flex items-center gap-1">
-      {entries.map((m, i) => {
-        const initials = m.displayName
-          ? m.displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
-          : (m.email?.[0] ?? '?').toUpperCase()
-        const colors = ['#e76a55', '#6366f1', '#0891b2', '#16a34a']
-        return (
-          <div key={i} className="w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold shrink-0"
-            style={{ fontSize: 9, background: colors[i % colors.length]!, border: '1.5px solid rgba(7,14,28,0.8)', marginLeft: i > 0 ? -4 : 0 }}>
-            {initials}
-          </div>
-        )
-      })}
-      {Object.keys(members).length > 4 && (
-        <span className="text-[10px] text-white/50 ml-1 font-mono">+{Object.keys(members).length - 4}</span>
-      )}
+    <div className="flex items-center gap-2">
+      <div className="flex items-center">
+        {entries.map((m, i) => {
+          const initials = m.displayName
+            ? m.displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+            : (m.email?.[0] ?? '?').toUpperCase()
+          const colors = ['#e76a55', '#6366f1', '#0891b2', '#16a34a']
+          return (
+            <div key={i} className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold shrink-0"
+              style={{ fontSize: 11, background: colors[i % colors.length]!, border: '2px solid rgba(7,14,28,0.9)', marginLeft: i > 0 ? -10 : 0 }}>
+              {initials}
+            </div>
+          )
+        })}
+      </div>
+      <span className="text-[11px] text-white/60 font-mono leading-none">
+        {total === 1 ? '1 person' : `${total} people`}
+      </span>
     </div>
   )
 }
@@ -251,7 +254,7 @@ export default function TripsPage() {
                 style={{ background: '#0c1b30', boxShadow: '0 1px 0 rgba(255,255,255,0.06)' }}
               >
                 <Icon size={18} className="text-indigo-400" />
-                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wide">{label}</span>
+                <span className="text-[11px] font-mono text-slate-300 uppercase tracking-wide">{label}</span>
               </button>
             ))}
           </div>
@@ -266,8 +269,8 @@ export default function TripsPage() {
               { label: 'Currency', value: hero.settings.baseCurrency ?? 'GBP' },
             ].map(s => (
               <div key={s.label} className="rounded-2xl px-3 py-2.5 text-center" style={{ background: '#0c1b30', boxShadow: '0 1px 0 rgba(255,255,255,0.06)' }}>
-                <p className="font-mono text-[9px] text-slate-500 uppercase tracking-widest">{s.label}</p>
-                <p className="text-white text-sm font-semibold mt-0.5">{s.value}</p>
+                <p className="font-mono text-[11px] text-slate-400 uppercase tracking-wider">{s.label}</p>
+                <p className="text-white text-base font-semibold mt-0.5">{s.value}</p>
               </div>
             ))}
           </div>
@@ -276,7 +279,7 @@ export default function TripsPage() {
         {/* Route cards — shown when trip has multiple destinations */}
         {hero && (hero.destinations ?? []).length > 1 && (
           <div className="mb-5">
-            <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest mb-2 px-5">Your route</p>
+            <p className="font-mono text-[12px] text-slate-400 uppercase tracking-wider mb-2 px-5">Your route</p>
             <div className="flex gap-3 px-4 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
               {(hero.destinations!).map((dest, i) => (
                 <DestinationStopCard key={i} name={dest} index={i} total={hero.destinations!.length} />
@@ -288,7 +291,7 @@ export default function TripsPage() {
         {/* Rest of upcoming */}
         {restUpcoming.length > 0 && (
           <section className="px-5 mb-6">
-            <p className="text-[11px] font-mono text-slate-500 uppercase tracking-widest mb-3">Upcoming</p>
+            <p className="text-[12px] font-mono text-slate-400 uppercase tracking-wider mb-3">Upcoming</p>
             <div className="space-y-2.5">
               {restUpcoming.map(t => (
                 <SmallTripCard key={t.id} trip={t} onClick={() => navigate(`/trip/${t.id}`)} />
@@ -300,7 +303,7 @@ export default function TripsPage() {
         {/* Past trips */}
         {past.length > 0 && (
           <section className="mb-6">
-            <p className="text-[11px] font-mono text-slate-500 uppercase tracking-widest mb-3 px-5">Past adventures</p>
+            <p className="text-[12px] font-mono text-slate-400 uppercase tracking-wider mb-3 px-5">Past adventures</p>
             <div className="flex gap-3 px-4 overflow-x-auto scrollbar-none pb-1">
               {past.map(t => (
                 <PastTripCard key={t.id} trip={t} onClick={() => navigate(`/trip/${t.id}`)} />
@@ -467,13 +470,13 @@ function HeroCard({ trip, onClick }: { trip: Trip; onClick: () => void }) {
         </div>
 
         <div className="flex items-end justify-between">
-          <p className="font-mono text-[11px] text-white/55 uppercase tracking-wide">
+          <p className="font-mono text-[13px] text-white/75 uppercase tracking-wide">
             {format(trip.startDate, 'MMM d')} — {format(trip.endDate, 'MMM d, yyyy')}
           </p>
           {isUpcoming && daysUntil >= 0 && (
             <div className="flex items-baseline gap-1">
               <span className="font-display italic text-4xl leading-none text-white">{daysUntil}</span>
-              <span className="font-mono text-[10px] text-white/50 uppercase tracking-wide">days</span>
+              <span className="font-mono text-[11px] text-white/70 uppercase tracking-wide">days</span>
             </div>
           )}
         </div>

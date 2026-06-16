@@ -59,5 +59,10 @@ service cloud.firestore {
     match /ticket-files/{fileId} {
       allow read, write: if request.auth != null;
     }
+
+    match /packingTemplates/{templateId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
   }
 }

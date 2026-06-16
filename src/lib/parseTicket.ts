@@ -218,9 +218,11 @@ function parseSection(section: string, fullText: string): ParsedTicketData {
   if (arrTime) result.arrivalTime = arrTime
 
   // ── Flight number ──
-  // \s* (not \s+) so we catch compact codes like "SQ305" as well as "AC 866"
-  const flightLabelMatch = section.match(/\bflight\s*[:\s#]+([A-Z]{2,3}\s*\d{3,4})\b/i)
-  const flightInlineMatch = section.match(/\b([A-Z]{2,3})\s*(\d{3,4})\b/)
+  // \s* (not \s+) so we catch compact codes like "SQ305" as well as "AC 866".
+  // \d{2,4} covers short flight numbers like SQ98 and BA9.
+  // (?!:\d) prevents matching the first 2 digits of a time — "SIN 09:00" → blocked, "SQ98" → ok.
+  const flightLabelMatch = section.match(/\bflight\s*[:\s#]+([A-Z]{2,3}\s*\d{2,4})(?!:\d)\b/i)
+  const flightInlineMatch = section.match(/\b([A-Z]{2,3})\s*(\d{2,4})(?!:\d)\b/)
   if (flightLabelMatch) result.flightNumber = flightLabelMatch[1].replace(/\s/g, '')
   else if (flightInlineMatch && !IATA_STOPWORDS.has(flightInlineMatch[1])) {
     result.flightNumber = flightInlineMatch[1] + flightInlineMatch[2]
@@ -271,6 +273,17 @@ function parseSection(section: string, fullText: string): ParsedTicketData {
       result.origin = locationParens[0]
       result.destination = locationParens[1]
     } else {
+      // Priority 1b: "(CODE)...(CODE)" on the same line — airline web/app screenshot format:
+      // "London Heathrow (LHR) to Singapore Changi (SIN)"
+      // Captures both codes without needing a dep/arr keyword prefix.
+      if (!result.origin || !result.destination) {
+        const sameLineParens = section.match(/\(([A-Z]{3})\)[^\n(]*\(([A-Z]{3})\)/)
+        if (sameLineParens && !IATA_STOPWORDS.has(sameLineParens[1]) && !IATA_STOPWORDS.has(sameLineParens[2])) {
+          if (!result.origin) result.origin = sameLineParens[1]
+          if (!result.destination) result.destination = sameLineParens[2]
+        }
+      }
+
       // Priority 2: "DEPARTING LHR" / "ARRIVING SIN" (Singapore Airlines format)
       const depCode = section.match(/\bDEPARTING\s+([A-Z]{3})\b/)
       const arrCode = section.match(/\bARRIVING\s+([A-Z]{3})\b/)
@@ -286,6 +299,12 @@ function parseSection(section: string, fullText: string): ParsedTicketData {
         } else if (locationParens.length === 1 && !result.origin) {
           result.origin = locationParens[0]
         }
+        // Priority 4: scan for "CODE HH:MM" pairs (handles screenshot OCR format "LHR 09:25 → SIN 05:45"
+        // where a time sits between the airport code and the route arrow, defeating Priority 3's CODE→CODE pattern)
+        const p4pairs = [...section.matchAll(/\b([A-Z]{3})\s+(\d{1,2}:\d{2})\b/g)]
+          .filter(m => !IATA_STOPWORDS.has(m[1]))
+        if (p4pairs[0] && !result.origin) result.origin = p4pairs[0][1]
+        if (p4pairs[1] && !result.destination) result.destination = p4pairs[1][1]
       }
     }
   }
@@ -374,14 +393,26 @@ function splitFlightSections(text: string): string[] {
     .map(trimSection)
   if (parts.length > 1) return parts
 
+  // Screenshot OCR fallback: Tesseract may not produce "DEPARTING ARRIVING STATUS" as one
+  // contiguous line — the three column headers can end up on separate OCR lines with content
+  // between them. Split on standalone DEPARTING; keep only sections that also contain a
+  // CODE HH:MM pair (confirms it's an actual departure section, not random text).
+  parts = text.split(/(?=\bDEPARTING\b)/i)
+    .filter(s => /\bDEPARTING\b/i.test(s) && /\b[A-Z]{3}\s+\d{1,2}:\d{2}/.test(s) && s.trim().length > 100)
+    .map(trimSection)
+  if (parts.length > 1) return parts
+
   // Split on day-of-week date headers (PenGuin/TravelUp format)
   parts = text.split(/(?=(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}\s+\w+\s+\d{4})/i)
     .filter(s => /flight/i.test(s) && s.trim().length > 100)
   if (parts.length > 1) return parts
 
-  // Split on numbered flight headers e.g. "1. SQ305 · London to Singapore"
-  parts = text.split(/(?=\d+\.\s+[A-Z]{2}\d{3,4}\s*[·•\-])/)
-    .filter(s => /flight|departing|arriving/i.test(s) && s.trim().length > 100)
+  // Split on numbered flight headers e.g. "1. SQ305 · London" or "1. SQ98 Singapore"
+  // Use \d{2,4} to capture short flight numbers like SQ98 or BA9.
+  // Filter excludes "airline" keyword so booking-header sections (which contain "Singapore Airlines"
+  // but no class/stop info) don't pass through as phantom tickets.
+  parts = text.split(/(?=\d+\.\s+[A-Z]{2}\d{2,4}(?:\s*[·•.\-]|\s+[A-Z][a-z]))/)
+    .filter(s => /economy|business|first|premium|non.?stop|flight/i.test(s) && s.trim().length > 100)
     .map(trimSection)
   if (parts.length > 1) return parts
 
@@ -389,6 +420,37 @@ function splitFlightSections(text: string): string[] {
   parts = text.split(/(?=Airline\s+Booking\s+Ref)/i)
     .filter(s => /flight/i.test(s) && s.trim().length > 100)
   if (parts.length > 1) return parts
+
+  // Strategy 6: standalone flight number headers (airline web/app screenshot format).
+  // Handles itineraries where each flight starts with its number on its own line:
+  //   "SQ305\nLondon Heathrow (LHR) to Singapore (SIN)\n09:25 → 05:45+1\n"
+  //   "SQ98\nSingapore (SIN) to Sydney (SYD)\n09:35 → 18:00\n"
+  // Split at the newline before each such flight-number line; keep sections with IATA-in-parens.
+  parts = text.split(/\n(?=[A-Z]{2}\d{2,4}[ \t]*\n)/)
+    .filter(s => /\([A-Z]{3}\)/i.test(s) && s.trim().length > 50)
+    .map(trimSection)
+  if (parts.length > 1) return parts
+
+  // Ultimate fallback: split by CODE HH:MM pair positions.
+  // Each direct flight contributes exactly 2 pairs (departure + arrival code+time).
+  // This works even when OCR column ordering defeats every text-pattern split above,
+  // because we're locating the actual flight data rather than structural markers.
+  // Guard: require ≥4 pairs and ≥2 distinct codes so single-flight tickets don't trigger.
+  const codePairs = [...text.matchAll(/\b([A-Z]{3})\s+(\d{1,2}:\d{2})\b/g)]
+    .filter(m => !IATA_STOPWORDS.has(m[1]))
+  const uniqueCodes = new Set(codePairs.map(m => m[1]))
+  if (codePairs.length >= 4 && uniqueCodes.size >= 2) {
+    const flightCount = Math.floor(codePairs.length / 2)
+    const sections: string[] = []
+    let prev = 0
+    for (let i = 1; i < flightCount; i++) {
+      const splitPos = Math.floor((codePairs[i * 2 - 1].index! + codePairs[i * 2].index!) / 2)
+      sections.push(trimSection(text.slice(prev, splitPos).trim()))
+      prev = splitPos
+    }
+    sections.push(trimSection(text.slice(prev).trim()))
+    if (sections.length > 1 && sections.every(s => s.length > 100)) return sections
+  }
 
   return [text]
 }

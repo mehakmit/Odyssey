@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
 import { usePackingList } from '@/hooks/usePackingList'
+import { usePackingTemplates } from '@/hooks/usePackingTemplates'
 import { useAuth } from '@/hooks/useAuth'
-import { Plus, Trash2, Luggage } from 'lucide-react'
+import { Plus, Trash2, Luggage, Bookmark, X } from 'lucide-react'
 import type { PackingItem } from '@/hooks/usePackingList'
 import type { Trip } from '@/types'
 
@@ -61,9 +62,13 @@ export default function PackingTab({ trip }: { trip: Trip }) {
   const tripId = trip.id
   const { items, loading, addItem, toggleItem, deleteItem } = usePackingList(tripId)
   const { user } = useAuth()
+  const { templates, saveTemplate, deleteTemplate } = usePackingTemplates(user?.uid)
   const [showAdd, setShowAdd] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newCategory, setNewCategory] = useState<PackingItem['category']>('clothes')
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [showSaveForm, setShowSaveForm] = useState(false)
+  const [saveName, setSaveName] = useState('')
 
   const destinations = trip.destinations ?? [trip.destination]
   const destSuggestions = useMemo(() => getDestSuggestions(destinations), [destinations.join(',')])
@@ -78,14 +83,17 @@ export default function PackingTab({ trip }: { trip: Trip }) {
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
-    if (!newTitle.trim() || !user) return
-    await addItem({ title: newTitle.trim(), category: newCategory, addedBy: user.uid })
+    const trimmed = newTitle.trim()
+    if (!trimmed || !user) return
+    if (!items.some(i => i.title.toLowerCase() === trimmed.toLowerCase())) {
+      await addItem({ title: trimmed, category: newCategory, addedBy: user.uid })
+    }
     setNewTitle('')
     setShowAdd(false)
   }
 
   async function quickAdd(title: string) {
-    if (!user) return
+    if (!user || items.some(i => i.title.toLowerCase() === title.toLowerCase())) return
     await addItem({ title, category: guessCategory(title), addedBy: user.uid })
   }
 
@@ -110,10 +118,19 @@ export default function PackingTab({ trip }: { trip: Trip }) {
             {loading ? '…' : total === 0 ? 'Nothing added yet' : `${packed} / ${total} packed`}
           </p>
         </div>
-        <button onClick={() => setShowAdd(v => !v)}
-          className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white mt-1">
-          <Plus size={18} />
-        </button>
+        <div className="flex items-center gap-2 mt-1">
+          <button
+            onClick={() => setShowTemplates(true)}
+            className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-400"
+            title="Packing templates"
+          >
+            <Bookmark size={16} />
+          </button>
+          <button onClick={() => setShowAdd(v => !v)}
+            className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white">
+            <Plus size={18} />
+          </button>
+        </div>
       </div>
 
       {total > 0 && (
@@ -217,6 +234,115 @@ export default function PackingTab({ trip }: { trip: Trip }) {
                 + {s}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Templates sheet */}
+      {showTemplates && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => { setShowTemplates(false); setShowSaveForm(false); setSaveName('') }}>
+          <div
+            className="bg-slate-900 rounded-t-2xl w-full p-4 space-y-3"
+            style={{ maxHeight: '75vh', overflowY: 'auto', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-white">Packing templates</h2>
+              <button onClick={() => { setShowTemplates(false); setShowSaveForm(false); setSaveName('') }} className="text-slate-400 p-1">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Save current list */}
+            {items.length > 0 && !showSaveForm && (
+              <button
+                onClick={() => setShowSaveForm(true)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left"
+                style={{ background: '#0c1b30', border: '1px dashed rgba(255,255,255,0.1)' }}
+              >
+                <Bookmark size={15} className="text-indigo-400 shrink-0" />
+                <span className="text-sm text-white flex-1">Save current list as template</span>
+                <span className="text-xs text-slate-500">{items.length} items</span>
+              </button>
+            )}
+
+            {showSaveForm && (
+              <div className="space-y-2">
+                <input
+                  autoFocus
+                  placeholder="Template name (e.g. Europe trip)"
+                  value={saveName}
+                  onChange={e => setSaveName(e.target.value)}
+                  className="w-full bg-slate-800 text-white rounded-xl px-3 py-2.5 outline-none focus:ring-1 focus:ring-indigo-500"
+                  style={{ fontSize: 16 }}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowSaveForm(false); setSaveName('') }}
+                    className="flex-1 h-10 rounded-xl text-slate-400 text-sm"
+                    style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+                  >Cancel</button>
+                  <button
+                    type="button"
+                    disabled={!saveName.trim()}
+                    onClick={async () => {
+                      if (!saveName.trim()) return
+                      await saveTemplate(saveName.trim(), items.map(i => ({ title: i.title, category: i.category })))
+                      setSaveName(''); setShowSaveForm(false)
+                    }}
+                    className="flex-1 h-10 rounded-xl text-white text-sm font-semibold disabled:opacity-40"
+                    style={{ background: '#e76a55' }}
+                  >Save</button>
+                </div>
+              </div>
+            )}
+
+            {/* Saved templates list */}
+            {templates.length > 0 && (
+              <div className="space-y-2">
+                <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest">Saved templates</p>
+                {[...templates].sort((a, b) => b.createdAt - a.createdAt).map(t => {
+                  const newItems = t.items.filter(ti =>
+                    !items.some(i => i.title.toLowerCase() === ti.title.toLowerCase())
+                  )
+                  return (
+                    <div key={t.id} className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                      style={{ background: '#0c1b30', boxShadow: '0 1px 0 rgba(255,255,255,0.04)' }}>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white">{t.name}</p>
+                        <p className="text-xs text-slate-500">
+                          {t.items.length} items
+                          {newItems.length < t.items.length && ` · ${t.items.length - newItems.length} already added`}
+                        </p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          for (const item of newItems) {
+                            if (user) await addItem({ title: item.title, category: item.category as PackingItem['category'], addedBy: user.uid })
+                          }
+                          setShowTemplates(false)
+                        }}
+                        disabled={newItems.length === 0}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0 disabled:opacity-30"
+                        style={{ background: 'rgba(99,102,241,0.2)', color: '#818cf8' }}
+                      >
+                        {newItems.length === 0 ? 'All added' : `Add ${newItems.length}`}
+                      </button>
+                      <button onClick={() => deleteTemplate(t.id)} className="text-slate-700 hover:text-red-400 shrink-0">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {templates.length === 0 && items.length === 0 && (
+              <p className="text-slate-500 text-sm text-center py-6">
+                Add items to your packing list, then save as a template to reuse on future trips.
+              </p>
+            )}
           </div>
         </div>
       )}
