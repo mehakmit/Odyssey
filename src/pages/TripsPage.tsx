@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { signOut } from 'firebase/auth'
+import { signOut, deleteUser } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useTrips } from '@/hooks/useTrips'
 import { useAuth } from '@/hooks/useAuth'
 import { format, differenceInDays } from 'date-fns'
-import { Plus, LogOut, Plane, Map, BookOpen, Luggage } from 'lucide-react'
+import { Plus, Plane, Map, BookOpen, Luggage, HelpCircle, User, X, ChevronRight } from 'lucide-react'
 import CreateTripModal from '@/components/CreateTripModal'
 import { OdysseyIcon } from '@/components/OdysseyIcon'
 import type { Trip, TripMember } from '@/types'
@@ -197,7 +197,28 @@ export default function TripsPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [showJoin, setShowJoin] = useState(false)
   const [joinCode, setJoinCode] = useState('')
+  const [showHelp, setShowHelp] = useState(false)
+  const [showAccount, setShowAccount] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
   const navigate = useNavigate()
+
+  async function handleDeleteAccount() {
+    if (!auth.currentUser) return
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await deleteUser(auth.currentUser)
+    } catch (err: any) {
+      setDeleting(false)
+      if (err.code === 'auth/requires-recent-login') {
+        setDeleteError('Please sign out and sign back in, then try again.')
+      } else {
+        setDeleteError('Something went wrong. Please try again.')
+      }
+    }
+  }
 
   const now = Date.now()
   const upcoming = trips.filter(t => t.endDate >= now).sort((a, b) => a.startDate - b.startDate)
@@ -222,8 +243,11 @@ export default function TripsPage() {
           >
             <Plus size={15} /> New trip
           </button>
-          <button onClick={() => signOut(auth)} className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
-            <LogOut size={16} />
+          <button onClick={() => setShowHelp(true)} className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+            <HelpCircle size={16} />
+          </button>
+          <button onClick={() => setShowAccount(true)} className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+            <User size={16} />
           </button>
         </div>
       </header>
@@ -335,6 +359,69 @@ export default function TripsPage() {
       </main>
 
       {showCreate && <CreateTripModal onClose={() => setShowCreate(false)} />}
+
+      {/* Help modal */}
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+
+      {/* Account sheet */}
+      {showAccount && (
+        <div className="fixed inset-0 bg-black/60 flex items-end justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-2xl w-full max-w-sm p-6 space-y-3">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-semibold text-white">Account</h2>
+              <button onClick={() => { setShowAccount(false); setShowDeleteConfirm(false); setDeleteError('') }} className="text-slate-400">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-sm text-slate-500 pb-1">{user?.email}</p>
+
+            {!showDeleteConfirm ? (
+              <>
+                <button
+                  onClick={() => { signOut(auth); setShowAccount(false) }}
+                  className="w-full text-left px-4 py-3 rounded-xl text-sm text-white flex items-center justify-between"
+                  style={{ background: 'rgba(255,255,255,0.05)' }}
+                >
+                  Sign out
+                  <ChevronRight size={16} className="text-slate-500" />
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full px-4 py-3 rounded-xl text-sm text-red-400 text-left"
+                  style={{ background: 'rgba(239,68,68,0.08)' }}
+                >
+                  Delete account
+                </button>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <div className="rounded-xl p-4" style={{ background: 'rgba(239,68,68,0.08)' }}>
+                  <p className="text-sm text-white font-semibold mb-1">Delete your account?</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">This permanently deletes your account and cannot be reversed. Trips you've shared will remain visible to other members.</p>
+                </div>
+                {deleteError && <p className="text-xs text-red-400">{deleteError}</p>}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowDeleteConfirm(false); setDeleteError('') }}
+                    className="flex-1 py-2.5 rounded-lg text-sm text-slate-400"
+                    style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={deleting}
+                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
+                    style={{ background: '#dc2626' }}
+                  >
+                    {deleting ? 'Deleting…' : 'Delete forever'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {showJoin && (
         <div className="fixed inset-0 bg-black/60 flex items-end justify-center z-50 p-4">
@@ -499,6 +586,73 @@ function SmallTripCard({ trip, onClick }: { trip: Trip; onClick: () => void }) {
       </div>
       <span className="text-slate-600 text-sm font-mono pr-4">›</span>
     </button>
+  )
+}
+
+function HelpModal({ onClose }: { onClose: () => void }) {
+  const sections = [
+    { emoji: '✈️', title: 'Your trips', desc: "The home screen shows your next upcoming trip. Tap it to open it. Use New trip to create one, or Join to enter a code from a friend." },
+    { emoji: '🎫', title: 'Tickets', desc: "Inside a trip, go to the Tickets tab and tap + to upload a boarding pass, hotel voucher, or car rental. Upload a PDF for best results — screenshots also work. Tap the pencil icon on any ticket to edit fields manually." },
+    { emoji: '📅', title: 'Day planner', desc: "The Plan tab shows a day-by-day timeline. Tap any day to add activities and notes. Switch to Wishlist to keep track of places you want to visit." },
+    { emoji: '💸', title: 'Expenses', desc: "Enable the Expenses tab in trip settings (gear icon). Log costs, assign who paid, and see a running balance of who owes what." },
+    { emoji: '🧳', title: 'Packing list', desc: "Tap the Pack shortcut on the home screen or go to Plan → Pack inside a trip. Check off items as you pack." },
+    { emoji: '👥', title: 'Inviting others', desc: "Open your trip → tap the gear icon → copy the trip code. Others tap Join on the home screen and paste it to join your trip." },
+  ]
+
+  const faqs = [
+    { q: "My ticket didn't parse correctly", a: "Tap the ticket to open it, then tap the pencil icon in the top right to edit any field manually. Changes are saved instantly." },
+    { q: "Only one of my flights was detected", a: "Try uploading the PDF version of your itinerary instead — PDF parsing is more reliable than image OCR. If you only have a screenshot, use the pencil icon to add the missing flight manually." },
+    { q: "The app isn't loading", a: "Odyssey works offline but needs an internet connection on first launch to sign in. Try force-quitting and reopening the app." },
+    { q: "How do I delete my account?", a: "Tap the person icon in the top-right of the home screen, then choose Delete account. This action cannot be reversed." },
+  ]
+
+  return (
+    <div className="fixed inset-0 bg-slate-950 z-50 overflow-y-auto">
+      <div className="px-5 pt-safe pb-12 max-w-lg mx-auto">
+        <div className="flex items-center justify-between py-4 sticky top-0 bg-slate-950 z-10">
+          <h1 className="text-xl font-semibold text-white">Help & Support</h1>
+          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+            <X size={18} />
+          </button>
+        </div>
+
+        <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest mb-4">Getting around</p>
+        <div className="space-y-3 mb-8">
+          {sections.map(item => (
+            <div key={item.title} className="flex gap-4 rounded-2xl px-4 py-4" style={{ background: '#0c1b30' }}>
+              <span className="text-2xl shrink-0">{item.emoji}</span>
+              <div>
+                <p className="text-white text-sm font-semibold mb-0.5">{item.title}</p>
+                <p className="text-slate-400 text-xs leading-relaxed">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest mb-4">Common questions</p>
+        <div className="space-y-3 mb-8">
+          {faqs.map(item => (
+            <div key={item.q} className="rounded-2xl px-4 py-4" style={{ background: '#0c1b30' }}>
+              <p className="text-white text-sm font-semibold mb-1">{item.q}</p>
+              <p className="text-slate-400 text-xs leading-relaxed">{item.a}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-2xl px-5 py-6 text-center" style={{ background: '#0c1b30' }}>
+          <p className="text-white text-sm font-semibold mb-1">Still need help?</p>
+          <p className="text-slate-400 text-xs mb-4">Send us a message and we'll get back to you.</p>
+          <a
+            href="https://myodyssey.live/support"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block bg-indigo-600 text-white text-sm font-semibold px-6 py-2.5 rounded-full"
+          >
+            Contact support
+          </a>
+        </div>
+      </div>
+    </div>
   )
 }
 

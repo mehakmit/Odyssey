@@ -50,17 +50,10 @@
       text-transform: uppercase;
       letter-spacing: 0.08em;
       margin-top: 40px;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
 
     p { margin-bottom: 14px; }
-
-    ul {
-      padding-left: 20px;
-      margin-bottom: 14px;
-    }
-
-    li { margin-bottom: 8px; }
 
     a {
       color: #818cf8;
@@ -69,43 +62,129 @@
 
     a:hover { text-decoration: underline; }
 
-    .contact-card {
-      margin-top: 40px;
+    .faq {
       background: #0c1b30;
-      border: 1px solid rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 20px 22px;
+      margin-bottom: 10px;
+    }
+
+    .faq strong {
+      display: block;
+      color: #e2e8f0;
+      font-size: 15px;
+      margin-bottom: 6px;
+    }
+
+    .faq p {
+      margin: 0;
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      margin: 48px 0;
+    }
+
+    /* Contact form */
+    .contact-card {
+      background: #0c1b30;
+      border: 1px solid rgba(255,255,255,0.06);
       border-radius: 20px;
-      padding: 28px;
+      padding: 32px;
     }
 
     .contact-card h2 {
       margin-top: 0;
     }
 
-    .contact-card p {
-      margin-bottom: 0;
+    .contact-card .desc {
+      color: #64748b;
+      font-size: 14px;
+      margin-bottom: 24px;
     }
 
-    .email-link {
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+
+    .field input,
+    .field textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 15px;
+      color: #e2e8f0;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+      resize: vertical;
+    }
+
+    .field input::placeholder,
+    .field textarea::placeholder {
+      color: #475569;
+    }
+
+    .field input:focus,
+    .field textarea:focus {
+      border-color: #6366f1;
+    }
+
+    .submit-btn {
       display: inline-block;
-      margin-top: 14px;
+      margin-top: 8px;
       background: #4f46e5;
       color: #fff;
-      text-decoration: none;
-      padding: 12px 24px;
+      border: none;
+      padding: 13px 28px;
       border-radius: 100px;
       font-size: 15px;
       font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
     }
 
-    .email-link:hover {
-      background: #4338ca;
-      text-decoration: none;
+    .submit-btn:hover { background: #4338ca; }
+    .submit-btn:disabled { opacity: 0.6; cursor: default; }
+
+    .success-msg {
+      display: none;
+      background: rgba(74,222,128,0.1);
+      border: 1px solid rgba(74,222,128,0.2);
+      border-radius: 12px;
+      padding: 16px 20px;
+      color: #4ade80;
+      font-size: 14px;
+      margin-top: 16px;
     }
 
-    .divider {
-      border: none;
-      border-top: 1px solid rgba(255,255,255,0.07);
-      margin: 40px 0;
+    .error-msg {
+      display: none;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 12px;
+      padding: 16px 20px;
+      color: #f87171;
+      font-size: 14px;
+      margin-top: 16px;
     }
 
     .footer {
@@ -124,30 +203,123 @@
 
   <h2>Common questions</h2>
 
-  <p><strong style="color:#e2e8f0">My ticket didn't parse correctly</strong><br />
-  Tap the ticket to open it, then tap the pencil icon in the top right to edit any field manually. Changes are saved instantly.</p>
+  <div class="faq">
+    <strong>My ticket didn't parse correctly</strong>
+    <p>Tap the ticket to open it, then tap the pencil icon in the top right to edit any field manually. Changes are saved instantly.</p>
+  </div>
 
-  <p><strong style="color:#e2e8f0">Only one of my flights was detected from a screenshot</strong><br />
-  Try uploading the PDF version of your itinerary instead — PDF parsing is more reliable than image OCR. If you only have a screenshot, use the manual edit feature to add the missing flight.</p>
+  <div class="faq">
+    <strong>Only one of my flights was detected from a screenshot</strong>
+    <p>Try uploading the PDF version of your itinerary instead — PDF parsing is more reliable than image OCR. If you only have a screenshot, use the manual edit feature to add the missing flight.</p>
+  </div>
 
-  <p><strong style="color:#e2e8f0">How do I invite someone to my trip?</strong><br />
-  Open the trip → tap the gear icon → tap Invite. Share the link or code with your travel companion.</p>
+  <div class="faq">
+    <strong>How do I invite someone to my trip?</strong>
+    <p>Open the trip → tap the gear icon → copy the trip code. Your travel companion can tap Join on the home screen and paste it to join.</p>
+  </div>
 
-  <p><strong style="color:#e2e8f0">How do I delete my account?</strong><br />
-  Email us at the address below and we'll delete your account and all associated data within 7 days.</p>
+  <div class="faq">
+    <strong>How do I enable Expenses or Car tabs?</strong>
+    <p>These tabs are hidden by default. Open the trip → tap the gear icon → toggle them on under Optional tabs.</p>
+  </div>
 
-  <p><strong style="color:#e2e8f0">The app isn't loading</strong><br />
-  Odyssey works offline, but requires an internet connection on first launch to sign in. If you're having trouble, try force-quitting the app and reopening it.</p>
+  <div class="faq">
+    <strong>The app isn't loading</strong>
+    <p>Odyssey works offline, but requires an internet connection on first launch to sign in. If you're having trouble, try force-quitting the app and reopening it.</p>
+  </div>
+
+  <div class="faq">
+    <strong>How do I delete my account?</strong>
+    <p>In the app, tap the person icon in the top-right of the home screen, then choose Delete account. Your account will be permanently deleted immediately. If you need help, email us below.</p>
+  </div>
+
+  <div class="faq">
+    <strong>Can I use Odyssey offline?</strong>
+    <p>Yes — once you've signed in, your trips are cached on your device and fully accessible without a connection. Changes sync automatically when you're back online.</p>
+  </div>
+
+  <div class="faq">
+    <strong>How do I remove someone from my trip?</strong>
+    <p>Currently, contact us via the form below and we'll remove them for you. Self-service member removal is coming in a future update.</p>
+  </div>
 
   <hr class="divider" />
 
   <div class="contact-card">
     <h2>Get in touch</h2>
-    <p>Can't find what you're looking for? Send us an email and we'll get back to you as soon as possible.</p>
-    <a href="mailto:support@myodyssey.live" class="email-link">support@myodyssey.live</a>
+    <p class="desc">Can't find what you're looking for? Fill in the form and we'll get back to you as soon as possible.</p>
+
+    <form id="contactForm">
+      <div class="field">
+        <label for="name">Your name</label>
+        <input type="text" id="name" name="name" placeholder="Jane Smith" required />
+      </div>
+      <div class="field">
+        <label for="email">Email address</label>
+        <input type="email" id="email" name="email" placeholder="jane@example.com" required />
+      </div>
+      <div class="field">
+        <label for="message">Describe the problem</label>
+        <textarea id="message" name="message" rows="5" placeholder="Tell us what's happening and we'll look into it…" required></textarea>
+      </div>
+      <button type="submit" class="submit-btn" id="submitBtn">Send message</button>
+      <div class="success-msg" id="successMsg">
+        ✓ Message sent — we'll get back to you shortly.
+      </div>
+      <div class="error-msg" id="errorMsg">
+        Something went wrong. Please email us directly at <a href="mailto:support@myodyssey.live">support@myodyssey.live</a>.
+      </div>
+    </form>
   </div>
 
   <p class="footer" style="margin-top:40px">© 2026 Odyssey · <a href="https://myodyssey.live">myodyssey.live</a> · <a href="https://myodyssey.live/privacy">Privacy Policy</a></p>
+
+  <script>
+    var ACCESS_KEY = '1dd897f3-c892-422a-a4dc-b40af8b576bf';
+
+    document.getElementById('contactForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var btn = document.getElementById('submitBtn');
+      var successMsg = document.getElementById('successMsg');
+      var errorMsg = document.getElementById('errorMsg');
+
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      successMsg.style.display = 'none';
+      errorMsg.style.display = 'none';
+
+      var name = document.getElementById('name').value.trim();
+      var email = document.getElementById('email').value.trim();
+      var message = document.getElementById('message').value.trim();
+
+      try {
+        var res = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({
+            access_key: ACCESS_KEY,
+            subject: 'Odyssey Support: ' + name,
+            from_name: name,
+            name: name,
+            email: email,
+            message: message
+          })
+        });
+        var data = await res.json();
+        if (data.success) {
+          successMsg.style.display = 'block';
+          document.getElementById('contactForm').reset();
+        } else {
+          errorMsg.style.display = 'block';
+        }
+      } catch (_) {
+        errorMsg.style.display = 'block';
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Send message';
+    });
+  </script>
 
 </body>
 </html>
