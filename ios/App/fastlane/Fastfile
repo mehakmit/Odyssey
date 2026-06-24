@@ -44,6 +44,11 @@ platform :ios do
       force:          false,
     )
 
+    increment_version_number(
+      version_number: "1.1",
+      xcodeproj:      "App.xcodeproj",
+    )
+
     increment_build_number(
       build_number: ENV["BUILD_NUMBER"] || Time.now.to_i.to_s,
       xcodeproj:    "App.xcodeproj",
