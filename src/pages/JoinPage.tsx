@@ -74,7 +74,7 @@ export default function JoinPage() {
           </a>
           <div className="flex items-center gap-3">
             <div className="flex-1 border-t border-white/10" />
-            <span className="text-slate-600 text-xs">or</span>
+            <span className="text-slate-400 text-xs">or</span>
             <div className="flex-1 border-t border-white/10" />
           </div>
           <button

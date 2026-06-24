@@ -253,7 +253,7 @@ export default function TripsPage() {
       </header>
 
       <main className="pb-10">
-        {loading && <p className="text-slate-500 text-sm px-5 py-8">Loading…</p>}
+        {loading && <p className="text-slate-400 text-sm px-5 py-8">Loading…</p>}
 
         {/* Hero trip card */}
         {hero && (
@@ -350,7 +350,7 @@ export default function TripsPage() {
                   style={{ background: '#0c1b30', boxShadow: '0 1px 0 rgba(255,255,255,0.05)' }}>
                   <span className="text-2xl">{f.emoji}</span>
                   <p className="text-white text-sm font-semibold leading-tight">{f.title}</p>
-                  <p className="text-slate-500 text-xs leading-snug">{f.desc}</p>
+                  <p className="text-slate-400 text-xs leading-snug">{f.desc}</p>
                 </div>
               ))}
             </div>
@@ -373,7 +373,7 @@ export default function TripsPage() {
                 <X size={18} />
               </button>
             </div>
-            <p className="text-sm text-slate-500 pb-1">{user?.email}</p>
+            <p className="text-sm text-slate-400 pb-1">{user?.email}</p>
 
             {!showDeleteConfirm ? (
               <>
@@ -383,7 +383,7 @@ export default function TripsPage() {
                   style={{ background: 'rgba(255,255,255,0.05)' }}
                 >
                   Sign out
-                  <ChevronRight size={16} className="text-slate-500" />
+                  <ChevronRight size={16} className="text-slate-400" />
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
@@ -490,7 +490,7 @@ function DestinationStopCard({ name, index, total }: { name: string; index: numb
           {imgUrl && <img src={imgUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />}
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 30%, rgba(7,14,28,0.7) 100%)' }} />
           <div className="absolute bottom-1.5 left-2.5">
-            <span className="font-mono text-[8px] text-white/40 uppercase tracking-wider">Stop {index + 1}</span>
+            <span className="font-mono text-[8px] text-white/60 uppercase tracking-wider">Stop {index + 1}</span>
           </div>
         </div>
         <div className="px-2.5 py-2">
@@ -498,7 +498,7 @@ function DestinationStopCard({ name, index, total }: { name: string; index: numb
         </div>
       </div>
       {index < total - 1 && (
-        <span className="text-slate-600 text-sm font-mono shrink-0">→</span>
+        <span className="text-slate-400 text-sm font-mono shrink-0">→</span>
       )}
     </div>
   )
@@ -551,7 +551,7 @@ function HeroCard({ trip, onClick }: { trip: Trip; onClick: () => void }) {
             style={{ fontSize: 48, letterSpacing: -1 }}>
             {trip.name}
           </h2>
-          <p className="text-white/55 font-display italic leading-tight" style={{ fontSize: destinations.length > 1 ? 20 : 28 }}>
+          <p className="text-white/70 font-display italic leading-tight" style={{ fontSize: destinations.length > 1 ? 20 : 28 }}>
             {routeLabel}
           </p>
         </div>
@@ -584,7 +584,7 @@ function SmallTripCard({ trip, onClick }: { trip: Trip; onClick: () => void }) {
         <p className="font-semibold text-white truncate">{trip.name}</p>
         <p className="text-slate-400 text-xs mt-0.5">{trip.destination} · {format(trip.startDate, 'MMM d')} – {format(trip.endDate, 'MMM d')}</p>
       </div>
-      <span className="text-slate-600 text-sm font-mono pr-4">›</span>
+      <span className="text-slate-400 text-sm font-mono pr-4">›</span>
     </button>
   )
 }
@@ -616,7 +616,7 @@ function HelpModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest mb-4">Getting around</p>
+        <p className="font-mono text-[11px] text-slate-400 uppercase tracking-widest mb-4">Getting around</p>
         <div className="space-y-3 mb-8">
           {sections.map(item => (
             <div key={item.title} className="flex gap-4 rounded-2xl px-4 py-4" style={{ background: '#0c1b30' }}>
@@ -629,7 +629,7 @@ function HelpModal({ onClose }: { onClose: () => void }) {
           ))}
         </div>
 
-        <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest mb-4">Common questions</p>
+        <p className="font-mono text-[11px] text-slate-400 uppercase tracking-widest mb-4">Common questions</p>
         <div className="space-y-3 mb-8">
           {faqs.map(item => (
             <div key={item.q} className="rounded-2xl px-4 py-4" style={{ background: '#0c1b30' }}>
@@ -665,7 +665,7 @@ function PastTripCard({ trip, onClick }: { trip: Trip; onClick: () => void }) {
       </div>
       <div className="px-3 py-2.5">
         <p className="font-display italic text-lg leading-tight text-white">{trip.name}</p>
-        <p className="font-mono text-[10px] text-slate-500 uppercase tracking-wide mt-1">
+        <p className="font-mono text-[10px] text-slate-400 uppercase tracking-wide mt-1">
           {format(trip.startDate, 'MMM yyyy')}
         </p>
       </div>

@@ -220,7 +220,7 @@ export default function ExpensesTab({ trip }: Props) {
           <h1 className="font-display italic text-4xl text-white leading-none">Expenses</h1>
           <p className="text-slate-400 text-sm mt-1">
             Split fairly · auto-converted
-            {ratesLoading && <span className="ml-1.5 inline-flex items-center gap-1 text-slate-500">
+            {ratesLoading && <span className="ml-1.5 inline-flex items-center gap-1 text-slate-400">
               <RefreshCw size={10} className="animate-spin" />
             </span>}
           </p>
@@ -289,7 +289,7 @@ export default function ExpensesTab({ trip }: Props) {
           <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full opacity-50"
             style={{ background: 'radial-gradient(circle, #2E6FA8, transparent 70%)' }} />
           <div className="relative">
-            <div className="font-mono text-[10px] text-white/50 uppercase tracking-widest">Trip total</div>
+            <div className="font-mono text-[10px] text-white/70 uppercase tracking-widest">Trip total</div>
             <div className="flex items-baseline gap-1 mt-1.5">
               <span className="font-display italic text-white leading-none" style={{ fontSize: 64, letterSpacing: -2 }}>
                 {currSym(baseCurrency)}{Math.floor(total).toLocaleString()}
@@ -312,7 +312,7 @@ export default function ExpensesTab({ trip }: Props) {
               ].map((s, i) => (
                 <div key={i}>
                   <div className="font-display italic text-2xl leading-none" style={{ color: s.accent ? '#e76a55' : '#fff' }}>{s.k}</div>
-                  <div className="text-[11px] text-white/50 mt-1">{s.l}</div>
+                  <div className="text-[11px] text-white/70 mt-1">{s.l}</div>
                 </div>
               ))}
             </div>
@@ -323,7 +323,7 @@ export default function ExpensesTab({ trip }: Props) {
       {/* Settle up */}
       {debts.length > 0 && (
         <div className="px-4 mb-5">
-          <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest mb-3">Settle up</p>
+          <p className="font-mono text-[11px] text-slate-400 uppercase tracking-widest mb-3">Settle up</p>
           <div className="space-y-2.5">
             {debts.map((debt, i) => (
               <div key={i} className="bg-slate-900 rounded-2xl px-4 py-3.5 flex items-center gap-3"
@@ -336,7 +336,7 @@ export default function ExpensesTab({ trip }: Props) {
                   <span className="text-sm font-semibold text-white truncate">{memberName(debt.from)}</span>
                   <div className="flex-1 flex items-center">
                     <div className="flex-1 border-t border-dashed border-white/10" />
-                    <span className="text-slate-500 text-xs mx-1">▶</span>
+                    <span className="text-slate-400 text-xs mx-1">▶</span>
                   </div>
                   <span className="text-sm font-semibold text-white truncate">{memberName(debt.to)}</span>
                 </div>
@@ -344,7 +344,7 @@ export default function ExpensesTab({ trip }: Props) {
                   <div className="font-display italic text-xl text-white leading-none">
                     {currSym(baseCurrency)}{debt.amount.toFixed(2)}
                   </div>
-                  <div className="font-mono text-[9px] text-slate-500 uppercase mt-0.5">Pending</div>
+                  <div className="font-mono text-[9px] text-slate-400 uppercase mt-0.5">Pending</div>
                 </div>
               </div>
             ))}
@@ -368,7 +368,7 @@ export default function ExpensesTab({ trip }: Props) {
       {realExpenses.length > 0 && (
         <div className="px-4">
           <div className="flex items-baseline justify-between mb-3">
-            <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest">Recent</p>
+            <p className="font-mono text-[11px] text-slate-400 uppercase tracking-widest">Recent</p>
             <span className="text-xs text-indigo-400 font-semibold">All {realExpenses.length}</span>
           </div>
           <div className="space-y-2">
@@ -387,13 +387,13 @@ export default function ExpensesTab({ trip }: Props) {
                       style={{ background: memberColor(expense.paidBy) }}>
                       {memberInitials(expense.paidBy)}
                     </div>
-                    <span className="text-xs text-slate-500">{memberName(expense.paidBy)} paid · {format(expense.date, 'MMM d')}</span>
+                    <span className="text-xs text-slate-400">{memberName(expense.paidBy)} paid · {format(expense.date, 'MMM d')}</span>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-sm font-semibold text-white">{expense.currency} {expense.amount.toFixed(2)}</div>
                   {expense.splitWith.length > 1 && (
-                    <div className="font-mono text-[10px] text-slate-500 mt-0.5">
+                    <div className="font-mono text-[10px] text-slate-400 mt-0.5">
                       /{expense.splitWith.length} = {expense.currency} {(expense.amount / expense.splitWith.length).toFixed(2)}
                     </div>
                   )}
@@ -409,7 +409,7 @@ export default function ExpensesTab({ trip }: Props) {
 
       {expenses.length === 0 && (
         <div className="flex flex-col items-center py-12 px-5 text-center">
-          <p className="font-display italic text-2xl text-slate-600">No expenses yet</p>
+          <p className="font-display italic text-2xl text-slate-400">No expenses yet</p>
           <button onClick={() => setShowAdd(true)} className="mt-3 text-indigo-400 text-sm">Add your first expense →</button>
         </div>
       )}

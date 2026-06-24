@@ -475,8 +475,8 @@ export default function NotesTab({ trip }: { trip: Trip }) {
 
       {notes.length === 0 && !showForm && (
         <div className="flex flex-col items-center py-12 px-5 text-center">
-          <p className="font-display italic text-2xl text-slate-600">Nothing planned yet</p>
-          <p className="text-slate-600 text-sm mt-2">Add places to visit, restaurants to try, things to do.</p>
+          <p className="font-display italic text-2xl text-slate-400">Nothing planned yet</p>
+          <p className="text-slate-400 text-sm mt-2">Add places to visit, restaurants to try, things to do.</p>
         </div>
       )}
 
@@ -494,10 +494,10 @@ export default function NotesTab({ trip }: { trip: Trip }) {
                 {note.done && <Check size={12} color="#fff" />}
               </button>
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-semibold ${note.done ? 'line-through text-slate-500' : 'text-white'}`}>
+                <p className={`text-sm font-semibold ${note.done ? 'line-through text-slate-400' : 'text-white'}`}>
                   {cat?.emoji} {note.title}
                 </p>
-                {note.notes && <p className="text-xs text-slate-500 mt-0.5">{note.notes}</p>}
+                {note.notes && <p className="text-xs text-slate-400 mt-0.5">{note.notes}</p>}
               </div>
               <button onClick={() => deleteNote(note.id)} className="text-slate-700 hover:text-red-400 shrink-0">
                 <Trash2 size={13} />
@@ -509,7 +509,7 @@ export default function NotesTab({ trip }: { trip: Trip }) {
 
       {unaddedWishlist.length > 0 && (
         <div className="px-4 mt-5">
-          <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest mb-2">
+          <p className="font-mono text-[11px] text-slate-400 uppercase tracking-widest mb-2">
             Ideas for {destinations.map(d => d.split(',')[0].trim()).join(' · ')}
           </p>
           <div className="space-y-2">
@@ -522,7 +522,7 @@ export default function NotesTab({ trip }: { trip: Trip }) {
                   style={{ background: '#0c1b30', border: '1px dashed rgba(255,255,255,0.08)' }}>
                   <span>{cat?.emoji}</span>
                   <span className="flex-1 text-sm text-white">{s.title}</span>
-                  <span className="text-xs text-slate-500 shrink-0">+ Add</span>
+                  <span className="text-xs text-slate-400 shrink-0">+ Add</span>
                 </button>
               )
             })}

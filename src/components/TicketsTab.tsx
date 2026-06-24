@@ -131,8 +131,8 @@ export default function TicketsTab({ tripId }: { tripId: string }) {
 
       {!loading && tickets.length === 0 && (
         <div className="flex flex-col items-center py-12 px-5 text-center">
-          <p className="font-display italic text-2xl text-slate-600">No tickets yet</p>
-          <p className="text-slate-600 text-sm mt-2">Tap the upload button to add a boarding pass or hotel confirmation.</p>
+          <p className="font-display italic text-2xl text-slate-400">No tickets yet</p>
+          <p className="text-slate-400 text-sm mt-2">Tap the upload button to add a boarding pass or hotel confirmation.</p>
         </div>
       )}
 
@@ -190,7 +190,7 @@ function TicketCard({ ticket, members, onOpen, onDelete, onAssign }: CardProps) 
               ? <Camera size={10} className="text-amber-600" />
               : <FileText size={10} className="text-indigo-700" />
             }
-            <span className="font-mono text-xs text-slate-500">{data.flightNumber}</span>
+            <span className="font-mono text-xs text-slate-400">{data.flightNumber}</span>
           </div>
         </div>
 
@@ -198,7 +198,7 @@ function TicketCard({ ticket, members, onOpen, onDelete, onAssign }: CardProps) 
         <div className="flex items-center px-4 py-4 gap-2">
           <div className="flex-1">
             <div className="font-display italic text-white leading-none" style={{ fontSize: 48 }}>{data.origin ?? '—'}</div>
-            <div className="text-xs text-slate-500 mt-1">{data.departureTime ?? ''}</div>
+            <div className="text-xs text-slate-400 mt-1">{data.departureTime ?? ''}</div>
           </div>
 
           <div className="flex flex-col items-center gap-1.5 shrink-0 px-1">
@@ -206,12 +206,12 @@ function TicketCard({ ticket, members, onOpen, onDelete, onAssign }: CardProps) 
             <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center">
               <Icon size={14} className="text-slate-400" style={{ transform: data.type === 'flight' ? 'rotate(45deg)' : 'none' }} />
             </div>
-            <span className="font-mono text-[9px] text-slate-600 uppercase">{shortDate}</span>
+            <span className="font-mono text-[9px] text-slate-400 uppercase">{shortDate}</span>
           </div>
 
           <div className="flex-1 text-right">
             <div className="font-display italic text-white leading-none" style={{ fontSize: 48 }}>{data.destination ?? '—'}</div>
-            <div className="text-xs text-slate-500 mt-1">{data.arrivalTime ?? ''}</div>
+            <div className="text-xs text-slate-400 mt-1">{data.arrivalTime ?? ''}</div>
           </div>
         </div>
 
@@ -231,7 +231,7 @@ function TicketCard({ ticket, members, onOpen, onDelete, onAssign }: CardProps) 
             { k: 'Class', v: shortClass },
           ].map(({ k, v }) => (
             <div key={k}>
-              <div className="font-mono text-[9px] text-slate-600 uppercase tracking-wide">{k}</div>
+              <div className="font-mono text-[9px] text-slate-400 uppercase tracking-wide">{k}</div>
               <div className="text-xs font-semibold text-white mt-0.5 truncate">{v}</div>
             </div>
           ))}
@@ -248,7 +248,7 @@ function TicketCard({ ticket, members, onOpen, onDelete, onAssign }: CardProps) 
               value={ticket.assignedMemberUid ?? ''}
               onClick={e => e.stopPropagation()}
               onChange={e => { e.stopPropagation(); onAssign(e.target.value || null) }}
-              className="bg-transparent text-slate-600 text-[10px] font-mono outline-none cursor-pointer max-w-[80px] truncate"
+              className="bg-transparent text-slate-400 text-[10px] font-mono outline-none cursor-pointer max-w-[80px] truncate"
             >
               <option value="">Assign…</option>
               <option value="all">Everyone</option>
@@ -289,12 +289,12 @@ function TicketCard({ ticket, members, onOpen, onDelete, onAssign }: CardProps) 
               {data.pickupLocation && <Field label="Pick-up" value={data.pickupLocation} wide />}
             </div>
           </div>
-          <span className="text-[10px] text-slate-600 shrink-0 mt-0.5">tap</span>
+          <span className="text-[10px] text-slate-400 shrink-0 mt-0.5">tap</span>
         </div>
       </button>
 
       <div className="px-4 pb-3 flex items-center gap-2 border-t border-white/[0.04]">
-        <User size={11} className="text-slate-600 shrink-0" />
+        <User size={11} className="text-slate-400 shrink-0" />
         <select
           value={ticket.assignedMemberUid ?? ''}
           onChange={e => onAssign(e.target.value || null)}
@@ -640,7 +640,7 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign, onUpdate }:
 
           {/* Original document */}
           <div className="border-t border-slate-800 mx-4 mb-4">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-4 mb-3">
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mt-4 mb-3">
               Original Document
             </p>
             {docUrl ? (
@@ -654,7 +654,7 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign, onUpdate }:
                     alt="Ticket"
                     className="w-full rounded-lg object-contain max-h-96 bg-slate-800"
                   />
-                  <p className="text-xs text-slate-500 text-center mt-2">Tap to zoom</p>
+                  <p className="text-xs text-slate-400 text-center mt-2">Tap to zoom</p>
                 </button>
               ) : (
                 <button
@@ -672,15 +672,15 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign, onUpdate }:
                     <p className="text-sm font-medium text-white truncate">{ticket.fileName}</p>
                     <p className="text-xs text-slate-400">Tap to open</p>
                   </div>
-                  <ExternalLink size={16} className="text-slate-500 shrink-0" />
+                  <ExternalLink size={16} className="text-slate-400 shrink-0" />
                 </button>
               )
             ) : (
               <div className="flex items-center gap-3 bg-slate-800/50 rounded-xl p-4">
-                <FileText size={24} className="text-slate-600 shrink-0" />
+                <FileText size={24} className="text-slate-400 shrink-0" />
                 <div>
                   <p className="text-sm text-slate-400 truncate">{ticket.fileName}</p>
-                  <p className="text-xs text-slate-600 mt-0.5">Re-upload this ticket to view the original</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Re-upload this ticket to view the original</p>
                 </div>
               </div>
             )}
@@ -691,7 +691,7 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign, onUpdate }:
         <div className="border-t border-slate-800 p-4 flex items-center gap-3 shrink-0">
           {members.length > 0 && (
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <User size={12} className="text-slate-500 shrink-0" />
+              <User size={12} className="text-slate-400 shrink-0" />
               <select
                 value={ticket.assignedMemberUid ?? ''}
                 onChange={e => onAssign(e.target.value || null)}
@@ -720,7 +720,7 @@ function TicketModal({ ticket, members, onClose, onDelete, onAssign, onUpdate }:
 function Field({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
   return (
     <div className={`min-w-0 ${wide ? 'col-span-2' : ''}`}>
-      <span className="text-slate-500 text-xs">{label}: </span>
+      <span className="text-slate-400 text-xs">{label}: </span>
       <span className="text-slate-200 text-xs break-words">{value}</span>
     </div>
   )
@@ -729,7 +729,7 @@ function Field({ label, value, wide }: { label: string; value: string; wide?: bo
 function ModalField({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
   return (
     <div className={wide ? 'col-span-2' : ''}>
-      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-xs text-slate-400">{label}</p>
       <p className="text-sm text-white font-medium mt-0.5">{value}</p>
     </div>
   )
@@ -740,7 +740,7 @@ function EditField({ label, value, onChange, wide, placeholder }: {
 }) {
   return (
     <div className={wide ? 'col-span-2' : ''}>
-      <p className="text-xs text-slate-500 mb-1">{label}</p>
+      <p className="text-xs text-slate-400 mb-1">{label}</p>
       <input
         value={value}
         onChange={e => onChange(e.target.value)}

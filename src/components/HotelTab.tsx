@@ -45,13 +45,13 @@ export default function HotelTab({ tripId }: { tripId: string }) {
         </label>
       </div>
 
-      {loading && <p className="text-slate-500 text-sm px-5">Loading…</p>}
+      {loading && <p className="text-slate-400 text-sm px-5">Loading…</p>}
 
       {!loading && hotelTickets.length === 0 && (
         <div className="flex flex-col items-center py-16 px-5 text-center">
           <Hotel size={36} className="text-slate-700 mb-3" />
-          <p className="font-display italic text-2xl text-slate-600">No stays yet</p>
-          <p className="text-slate-600 text-sm mt-2">Upload a hotel confirmation in the Tickets tab.</p>
+          <p className="font-display italic text-2xl text-slate-400">No stays yet</p>
+          <p className="text-slate-400 text-sm mt-2">Upload a hotel confirmation in the Tickets tab.</p>
         </div>
       )}
 
@@ -98,7 +98,7 @@ export default function HotelTab({ tripId }: { tripId: string }) {
                       </span>
                     </div>
                   )}
-                  <div className="absolute bottom-2 left-4 font-mono text-[10px] text-white/30 uppercase tracking-wide">
+                  <div className="absolute bottom-2 left-4 font-mono text-[10px] text-white/60 uppercase tracking-wide">
                     HOTEL · {data.hotelName?.toUpperCase().slice(0, 20) ?? 'HOTEL'} · EXTERIOR
                   </div>
                 </div>
@@ -117,7 +117,7 @@ export default function HotelTab({ tripId }: { tripId: string }) {
                 {/* Check-in / nights / check-out timeline */}
                 <div className="mx-4 my-4 rounded-2xl px-4 py-3.5 flex items-center" style={{ background: 'rgba(255,255,255,0.05)' }}>
                   <div className="flex-1">
-                    <div className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">Check-in</div>
+                    <div className="font-mono text-[10px] text-slate-400 uppercase tracking-wider">Check-in</div>
                     <div className="font-semibold text-white text-sm mt-1">{data.checkIn?.match(/\w+ \d+,? \d{4}/i)?.[0] ?? '—'} · {data.checkIn?.match(/\d{1,2}:\d{2}/)?.[0] ?? '—'}</div>
                   </div>
                   {nights !== null && (
@@ -125,11 +125,11 @@ export default function HotelTab({ tripId }: { tripId: string }) {
                       <div className="w-16 relative">
                         <div className="border-t border-dashed border-white/15" />
                       </div>
-                      <span className="font-mono text-[9px] text-slate-500 mt-1 uppercase tracking-wide">{nights} nights</span>
+                      <span className="font-mono text-[9px] text-slate-400 mt-1 uppercase tracking-wide">{nights} nights</span>
                     </div>
                   )}
                   <div className="flex-1 text-right">
-                    <div className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">Check-out</div>
+                    <div className="font-mono text-[10px] text-slate-400 uppercase tracking-wider">Check-out</div>
                     <div className="font-semibold text-white text-sm mt-1">{data.checkOut?.match(/\w+ \d+,? \d{4}/i)?.[0] ?? '—'} · {data.checkOut?.match(/\d{1,2}:\d{2}/)?.[0] ?? '—'}</div>
                   </div>
                 </div>
@@ -167,7 +167,7 @@ export default function HotelTab({ tripId }: { tripId: string }) {
                 return nextCheckInDate && nextCheckInDate > new Date()
               })() && (
                 <div className="mt-5">
-                  <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest mb-3 px-1">
+                  <p className="font-mono text-[11px] text-slate-400 uppercase tracking-widest mb-3 px-1">
                     Next stay
                   </p>
                   <div className="bg-slate-900 rounded-2xl p-4 flex items-center gap-3"
@@ -177,9 +177,9 @@ export default function HotelTab({ tripId }: { tripId: string }) {
                     <div className="flex-1 min-w-0">
                       <div className="font-display italic text-xl text-white leading-tight">{nextData.hotelName ?? 'Hotel'}</div>
                       <div className="text-slate-400 text-xs mt-1">{nextData.checkIn?.match(/\w+ \d+/i)?.[0] ?? ''} — {nextData.checkOut?.match(/\w+ \d+/i)?.[0] ?? ''}</div>
-                      {nextData.roomType && <div className="text-slate-500 text-xs mt-0.5">{nextData.roomType}</div>}
+                      {nextData.roomType && <div className="text-slate-400 text-xs mt-0.5">{nextData.roomType}</div>}
                     </div>
-                    <span className="text-slate-600 text-lg">›</span>
+                    <span className="text-slate-400 text-lg">›</span>
                   </div>
                 </div>
               )}
@@ -198,7 +198,7 @@ function InfoTile({ icon, main, sub }: { icon: React.ReactNode; main: string; su
         {icon}
         <span className="text-xs font-semibold text-white truncate">{main}</span>
       </div>
-      <div className="text-[11px] text-slate-500 mt-1 ml-6 truncate">{sub}</div>
+      <div className="text-[11px] text-slate-400 mt-1 ml-6 truncate">{sub}</div>
     </div>
   )
 }

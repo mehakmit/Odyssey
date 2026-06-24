@@ -26,7 +26,7 @@ export default function Countdown({ startDate }: { startDate: number }) {
       ].map(({ label, value }) => (
         <div key={label} className="text-center">
           <p className="text-2xl font-bold text-indigo-400 tabular-nums">{String(value).padStart(2, '0')}</p>
-          <p className="text-xs text-slate-500">{label}</p>
+          <p className="text-xs text-slate-400">{label}</p>
         </div>
       ))}
     </div>

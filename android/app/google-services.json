@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "947837806868",
+    "project_id": "voyager-301a2",
+    "storage_bucket": "voyager-301a2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:947837806868:android:dd0ab53c088c8d3096ba01",
+        "android_client_info": {
+          "package_name": "app.odyssey"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "947837806868-458ks4a37llqjrl3rqel1ji937n2lt0u.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDIPPupjIeCRL3Flf-cxI_kFHHd5De168o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "947837806868-458ks4a37llqjrl3rqel1ji937n2lt0u.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "947837806868-m7rrbj27g3atsk0bqadtcrdkkq6b18q3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "app.odyssey"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

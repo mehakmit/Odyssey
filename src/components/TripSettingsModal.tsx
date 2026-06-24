@@ -94,7 +94,7 @@ export default function TripSettingsModal({ trip, onClose, onDelete }: { trip: T
                   className="flex-1 bg-slate-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500"
                 />
                 {i > 0 && (
-                  <button type="button" onClick={() => removeStop(i)} className="text-slate-600 hover:text-red-400 shrink-0">
+                  <button type="button" onClick={() => removeStop(i)} className="text-slate-400 hover:text-red-400 shrink-0">
                     <Trash2 size={14} />
                   </button>
                 )}
@@ -110,7 +110,7 @@ export default function TripSettingsModal({ trip, onClose, onDelete }: { trip: T
         {/* Trip code */}
         <div>
           <p className="text-xs font-medium text-slate-400 mb-1">Trip code</p>
-          <p className="text-xs text-slate-600 mb-2">Share this code — others can enter it in the app to join.</p>
+          <p className="text-xs text-slate-400 mb-2">Share this code — others can enter it in the app to join.</p>
           <div className="flex items-center gap-2">
             <p className="flex-1 bg-slate-800 text-slate-200 text-xs rounded-lg px-3 py-2 font-mono tracking-widest truncate">{trip.inviteToken ?? '—'}</p>
             <button onClick={copyCode} className="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg p-2">
@@ -126,7 +126,7 @@ export default function TripSettingsModal({ trip, onClose, onDelete }: { trip: T
             {(Object.values(trip.memberDetails) as TripMember[]).map(member => (
               <div key={member.uid} className="flex items-center justify-between">
                 <p className="text-sm text-white">{member.displayName ?? member.email}</p>
-                <span className="text-xs text-slate-500 capitalize">{member.role}</span>
+                <span className="text-xs text-slate-400 capitalize">{member.role}</span>
               </div>
             ))}
           </div>

@@ -62,7 +62,7 @@ export default function TripPage() {
       {/* Header */}
       <header className="flex items-center gap-2 px-4 pb-3 pt-safe border-b border-white/[0.06]">
         <div className="flex-1 min-w-0">
-          <p className="font-mono text-[10px] text-slate-500 uppercase tracking-widest truncate">
+          <p className="font-mono text-[10px] text-slate-400 uppercase tracking-widest truncate">
             {(trip.destinations ?? [trip.destination]).map(d => d.split(',')[0].trim()).join(' → ')}
           </p>
           <h1 className="font-display italic text-2xl leading-tight text-white truncate">{trip.name}</h1>
@@ -70,7 +70,7 @@ export default function TripPage() {
         {isUpcoming && daysUntil >= 0 && (
           <div className="text-right shrink-0">
             <p className="font-display italic text-2xl leading-none text-indigo-400">{daysUntil}</p>
-            <p className="text-[9px] font-mono text-slate-500 uppercase tracking-wide mt-0.5">days to go</p>
+            <p className="text-[9px] font-mono text-slate-400 uppercase tracking-wide mt-0.5">days to go</p>
           </div>
         )}
       </header>

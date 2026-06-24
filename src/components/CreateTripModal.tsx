@@ -119,7 +119,7 @@ export default function CreateTripModal({ onClose }: { onClose: () => void }) {
                     className="flex-1 bg-slate-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                   {i > 0 && (
-                    <button type="button" onClick={() => removeStop(i)} className="text-slate-600 hover:text-red-400 shrink-0">
+                    <button type="button" onClick={() => removeStop(i)} className="text-slate-400 hover:text-red-400 shrink-0">
                       <Trash2 size={14} />
                     </button>
                   )}

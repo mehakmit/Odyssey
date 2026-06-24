@@ -192,8 +192,8 @@ export default function PackingTab({ trip }: { trip: Trip }) {
       {!loading && total === 0 && !showAdd && (
         <div className="flex flex-col items-center py-12 px-5 text-center">
           <Luggage size={36} className="text-slate-700 mb-3" />
-          <p className="font-display italic text-2xl text-slate-600">Nothing packed yet</p>
-          <p className="text-slate-600 text-sm mt-2">Add items to build your shared packing list.</p>
+          <p className="font-display italic text-2xl text-slate-400">Nothing packed yet</p>
+          <p className="text-slate-400 text-sm mt-2">Add items to build your shared packing list.</p>
         </div>
       )}
 
@@ -210,7 +210,7 @@ export default function PackingTab({ trip }: { trip: Trip }) {
               }}>
               {item.packed && <span className="text-white text-xs font-bold">✓</span>}
             </button>
-            <span className={`flex-1 text-sm transition-colors ${item.packed ? 'line-through text-slate-500' : 'text-white'}`}>
+            <span className={`flex-1 text-sm transition-colors ${item.packed ? 'line-through text-slate-400' : 'text-white'}`}>
               {item.title}
             </span>
             <span className="text-sm" style={{ opacity: 0.3 }}>{catEmoji(item.category)}</span>
@@ -223,7 +223,7 @@ export default function PackingTab({ trip }: { trip: Trip }) {
 
       {unaddedSuggestions.length > 0 && (
         <div className="px-4 mt-5">
-          <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest mb-2">
+          <p className="font-mono text-[11px] text-slate-400 uppercase tracking-widest mb-2">
             Suggested for {destinations.map(d => d.split(',')[0].trim()).join(' · ')}
           </p>
           <div className="flex flex-wrap gap-2">
@@ -262,7 +262,7 @@ export default function PackingTab({ trip }: { trip: Trip }) {
               >
                 <Bookmark size={15} className="text-indigo-400 shrink-0" />
                 <span className="text-sm text-white flex-1">Save current list as template</span>
-                <span className="text-xs text-slate-500">{items.length} items</span>
+                <span className="text-xs text-slate-400">{items.length} items</span>
               </button>
             )}
 
@@ -301,7 +301,7 @@ export default function PackingTab({ trip }: { trip: Trip }) {
             {/* Saved templates list */}
             {templates.length > 0 && (
               <div className="space-y-2">
-                <p className="font-mono text-[11px] text-slate-500 uppercase tracking-widest">Saved templates</p>
+                <p className="font-mono text-[11px] text-slate-400 uppercase tracking-widest">Saved templates</p>
                 {[...templates].sort((a, b) => b.createdAt - a.createdAt).map(t => {
                   const newItems = t.items.filter(ti =>
                     !items.some(i => i.title.toLowerCase() === ti.title.toLowerCase())
@@ -311,7 +311,7 @@ export default function PackingTab({ trip }: { trip: Trip }) {
                       style={{ background: '#0c1b30', boxShadow: '0 1px 0 rgba(255,255,255,0.04)' }}>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-white">{t.name}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-slate-400">
                           {t.items.length} items
                           {newItems.length < t.items.length && ` · ${t.items.length - newItems.length} already added`}
                         </p>
@@ -339,7 +339,7 @@ export default function PackingTab({ trip }: { trip: Trip }) {
             )}
 
             {templates.length === 0 && items.length === 0 && (
-              <p className="text-slate-500 text-sm text-center py-6">
+              <p className="text-slate-400 text-sm text-center py-6">
                 Add items to your packing list, then save as a template to reuse on future trips.
               </p>
             )}

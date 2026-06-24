@@ -201,7 +201,7 @@ export default function ItineraryTab({ trip, initialView }: { trip: Trip; initia
       {/* Day label */}
       {activeDay && (
         <div className="px-5 pb-3">
-          <p className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">
+          <p className="font-mono text-[10px] text-slate-400 uppercase tracking-widest">
             Day {activeIdx + 1} of {days.length}
           </p>
           <p className="font-display italic text-2xl text-white mt-0.5">
@@ -218,7 +218,7 @@ export default function ItineraryTab({ trip, initialView }: { trip: Trip; initia
             style={{ boxShadow: '0 1px 0 rgba(255,255,255,0.06)' }}>
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-white">Add stop · {format(activeDay, 'MMM d')}</p>
-              <button onClick={() => setShowAddForm(false)}><X size={16} className="text-slate-500" /></button>
+              <button onClick={() => setShowAddForm(false)}><X size={16} className="text-slate-400" /></button>
             </div>
             <input autoFocus placeholder="What are you doing?" value={addTitle}
               onChange={e => setAddTitle(e.target.value)}
@@ -251,7 +251,7 @@ export default function ItineraryTab({ trip, initialView }: { trip: Trip; initia
         )}
 
         {dayEvents.length === 0 ? (
-          <div className="flex flex-col items-center py-12 text-slate-600">
+          <div className="flex flex-col items-center py-12 text-slate-400">
             <p className="text-sm">No events this day</p>
           </div>
         ) : (
@@ -366,7 +366,7 @@ export default function ItineraryTab({ trip, initialView }: { trip: Trip; initia
         {activeDay && (
           <button
             onClick={() => setShowAddForm(true)}
-            className="mt-4 w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-semibold text-slate-500"
+            className="mt-4 w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-semibold text-slate-400"
             style={{ border: '1.5px dashed rgba(255,255,255,0.08)' }}>
             <Plus size={15} /> Add stop to {format(activeDay, 'MMM d')}
           </button>

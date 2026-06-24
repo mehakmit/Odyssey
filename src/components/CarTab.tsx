@@ -126,7 +126,7 @@ export default function CarTab({ tripId }: { tripId: string }) {
             <div className="px-5 py-4">
               <div className="flex items-stretch gap-3">
                 <div className="flex-1">
-                  <div className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">Pickup</div>
+                  <div className="font-mono text-[10px] text-slate-400 uppercase tracking-wider">Pickup</div>
                   <div className="font-display italic text-xl text-white mt-1">
                     {manual?.pickupDate ? new Date(manual.pickupDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}
                   </div>
@@ -142,7 +142,7 @@ export default function CarTab({ tripId }: { tripId: string }) {
                   </div>
                 </div>
                 <div className="flex-1 text-right">
-                  <div className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">Return</div>
+                  <div className="font-mono text-[10px] text-slate-400 uppercase tracking-wider">Return</div>
                   <div className="font-display italic text-xl text-white mt-1">
                     {manual?.dropoffDate ? new Date(manual.dropoffDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}
                   </div>
@@ -165,7 +165,7 @@ export default function CarTab({ tripId }: { tripId: string }) {
               ].map((s, i) => (
                 <div key={i}>
                   <div className="font-semibold text-sm text-white">{s.k}</div>
-                  <div className="font-mono text-[9px] text-slate-500 uppercase tracking-wide mt-0.5">{s.l}</div>
+                  <div className="font-mono text-[9px] text-slate-400 uppercase tracking-wide mt-0.5">{s.l}</div>
                 </div>
               ))}
             </div>
@@ -177,7 +177,7 @@ export default function CarTab({ tripId }: { tripId: string }) {
       {!hasData && (
         <div className="flex flex-col items-center py-12 px-5 text-center">
           <Car size={36} className="text-slate-700 mb-3" />
-          <p className="font-display italic text-2xl text-slate-600">No rental yet</p>
+          <p className="font-display italic text-2xl text-slate-400">No rental yet</p>
           <button onClick={() => setShowForm(true)} className="mt-3 text-indigo-400 text-sm">
             Add car details →
           </button>
@@ -206,7 +206,7 @@ export default function CarTab({ tripId }: { tripId: string }) {
               { label: 'Booking reference', key: 'bookingRef', placeholder: '' },
             ].map(({ label, key, placeholder }) => (
               <div key={key}>
-                <label className="block text-[11px] font-mono text-slate-500 uppercase tracking-wide mb-1">{label}</label>
+                <label className="block text-[11px] font-mono text-slate-400 uppercase tracking-wide mb-1">{label}</label>
                 <input
                   placeholder={placeholder}
                   value={form[key as keyof typeof form]}
@@ -216,7 +216,7 @@ export default function CarTab({ tripId }: { tripId: string }) {
               </div>
             ))}
             <div>
-              <label className="block text-[11px] font-mono text-slate-500 uppercase tracking-wide mb-1">Notes</label>
+              <label className="block text-[11px] font-mono text-slate-400 uppercase tracking-wide mb-1">Notes</label>
               <textarea
                 value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
